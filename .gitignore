@@ -1,0 +1,28 @@
+# Local design and implementation documents
+docs/spec/
+docs/plan/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.python-version
+.venv/
+venv/
+
+# Build and test artifacts
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+build/
+dist/
+htmlcov/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
