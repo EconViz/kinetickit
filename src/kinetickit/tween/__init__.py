@@ -4,6 +4,6 @@ from __future__ import annotations
 
 from kinetickit.timeline.property import PropertyRef
 from kinetickit.tween.property import PropertyBuilder
-from kinetickit.tween.tween import Tween
+from kinetickit.tween.tween import NO_VALUE, Tween
 
-__all__ = ["PropertyBuilder", "PropertyRef", "Tween"]
+__all__ = ["NO_VALUE", "PropertyBuilder", "PropertyRef", "Tween"]

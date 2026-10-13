@@ -54,6 +54,9 @@ class Keyframes(Motion):
     def duration(self) -> float:
         return self.frames[-1].time
 
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return frozenset({self.target})
+
     def _compile(self, pre: PreState, registry: InterpolatorRegistry) -> Compiled:
         registry.resolve(self.target.value_type)
         segments: list[Segment] = []
