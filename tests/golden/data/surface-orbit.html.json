@@ -1,0 +1,47 @@
+{
+  "controls": [
+    "notice",
+    "first",
+    "prev",
+    "play",
+    "next",
+    "last",
+    "seek",
+    "time",
+    "speed",
+    "loop",
+    "reset"
+  ],
+  "data": {
+    "autoplay": true,
+    "dimension": 3,
+    "duration": 1.0,
+    "fps": 4,
+    "generator": "kinetickit 0.1.0.dev0",
+    "height": 200,
+    "loop": false,
+    "markers": {},
+    "objects": {
+      "marker": "points",
+      "surface": "edges"
+    },
+    "reducedTime": 1.0,
+    "speed": 1.0,
+    "version": 1,
+    "width": 300
+  },
+  "external_refs": [],
+  "frame_count": 4,
+  "has_runtime": true,
+  "layout_keys": [
+    "autosize",
+    "height",
+    "hovermode",
+    "margin",
+    "paper_bgcolor",
+    "plot_bgcolor",
+    "scene",
+    "showlegend",
+    "width"
+  ]
+}

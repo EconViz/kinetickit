@@ -1,0 +1,83 @@
+{
+  "comment": {
+    "colors": 256,
+    "dither": "none",
+    "dpi": 96,
+    "duration_cs": 200,
+    "frames": 8,
+    "generator": "kinetickit 0.1.0.dev0",
+    "palette": "adaptive"
+  },
+  "frames": 8,
+  "loop": 0,
+  "per_frame": [
+    {
+      "coarse_rgb": [
+        254,
+        248,
+        246
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        254,
+        249,
+        247
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        254,
+        248,
+        247
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        254,
+        249,
+        247
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        248,
+        244,
+        244
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        237,
+        236,
+        239
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        234,
+        234,
+        238
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        233,
+        234,
+        238
+      ],
+      "duration_ms": 250
+    }
+  ],
+  "size": [
+    80,
+    60
+  ]
+}

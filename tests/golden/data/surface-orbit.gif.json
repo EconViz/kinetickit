@@ -1,0 +1,51 @@
+{
+  "comment": {
+    "colors": 256,
+    "dither": "none",
+    "dpi": 96,
+    "duration_cs": 100,
+    "frames": 4,
+    "generator": "kinetickit 0.1.0.dev0",
+    "palette": "adaptive"
+  },
+  "frames": 4,
+  "loop": 0,
+  "per_frame": [
+    {
+      "coarse_rgb": [
+        226,
+        224,
+        224
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        207,
+        206,
+        207
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        207,
+        205,
+        206
+      ],
+      "duration_ms": 250
+    },
+    {
+      "coarse_rgb": [
+        225,
+        223,
+        224
+      ],
+      "duration_ms": 250
+    }
+  ],
+  "size": [
+    80,
+    60
+  ]
+}

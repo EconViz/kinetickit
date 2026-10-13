@@ -34,6 +34,24 @@ jobs:
       - run: uv sync --python ${{ matrix.python }} --all-extras
       - run: uv run pytest --cov=kinetickit --cov-report=term-missing
 
+  budgets:
+    name: conformance and performance budgets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - name: Conformance suites and budget report
+        run: |
+          uv run python -m kinetickit.conformance --json budgets.json --scale 3 | tee budgets.md
+          { echo '## Performance budgets'; echo; uv run python -c "import json; from kinetickit.conformance import budgets; print(budgets.report(json.load(open('budgets.json'))['values'], 3))"; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: budget-report
+          path: |
+            budgets.json
+            budgets.md
+
   quality:
     runs-on: ubuntu-latest
     steps:
