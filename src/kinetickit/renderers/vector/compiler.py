@@ -69,6 +69,7 @@ class SvgSettings:
     pretty: bool = True
     embed_fonts: bool = True
     layout: LayoutResult | None = None
+    degradation: str = "drop"
 
 
 @dataclass(frozen=True)

@@ -10,6 +10,7 @@ from xml.sax.saxutils import escape, quoteattr
 from kinetickit import __version__
 from kinetickit.animation import Animation
 from kinetickit.errors import CapabilityError, ConfigurationError
+from kinetickit.interaction import Degradation, PlaybackControls, plan_interactions
 from kinetickit.interpolation import Color
 from kinetickit.renderers.capabilities import (
     DIM_2D,
@@ -31,7 +32,7 @@ INTERACTIVE_CAPABILITIES = RendererCapabilities(
     ),
     features=frozenset({"clip", "overlay", "camera-animation", "draw-progress"}),
     outputs=frozenset({OUT_INTERACTIVE_DOCUMENT}),
-    interactions=frozenset({"hover", "click", "dblclick", "focus", "camera", "playback"}),
+    interactions=frozenset({"hover", "click", "dblclick", "focus", "select", "camera", "playback"}),
     notes=(
         "2D embeds the native Animated SVG and drives its timeline; 3D uses a private plotting "
         "runtime with pre-sampled frames and native camera interaction.",
@@ -56,7 +57,8 @@ class HtmlSettings:
     autoplay: bool = True
     loop: bool = False
     speed: float = 1.0
-    controls: bool = True
+    controls: bool | PlaybackControls = True
+    degradation: str = "drop"
     fps: int = 30
     max_frames: int = 900
     precision: int = 4
@@ -89,6 +91,8 @@ class HtmlDocument:
     element_ids: dict[str, str] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
     network_dependencies: tuple[str, ...] = ()
+    preserved: tuple[str, ...] = ()
+    degraded: tuple[str, ...] = ()
 
     def to_bytes(self) -> bytes:
         return self.text.encode("utf-8")
@@ -106,39 +110,63 @@ def _json(payload: Any) -> str:
     )
 
 
-def _controls(duration: float, markers: dict[str, float], has_reset: bool) -> str:
+def _controls(duration: float, markers: dict[str, float], controls: PlaybackControls) -> str:
+    c = controls
+    reset = (
+        '<button type="button" data-kk="reset" aria-label="Reset view">Reset view</button>'
+        if c.has("reset")
+        else ""
+    )
     if duration <= 0:
         return (
-            '<div class="kk-controls" role="toolbar" aria-label="View controls">'
-            '<button type="button" data-kk="reset" aria-label="Reset view">Reset view</button></div>'
+            f'<div class="kk-controls" role="toolbar" aria-label="View controls">{reset}</div>'
+            if reset
+            else ""
         )
-    speeds = "".join(f'<option value="{s}">{s}\u00d7</option>' for s in (0.25, 0.5, 1, 2, 4))
-    marker_html = ""
-    if markers:
+    parts: list[str] = []
+    if c.has("first"):
+        parts.append(
+            '<button type="button" data-kk="first" aria-label="Go to start">\u23ee</button>'
+        )
+    if c.has("step"):
+        parts.append(
+            '<button type="button" data-kk="prev" aria-label="Previous frame">\u25c0</button>'
+        )
+    if c.has("play"):
+        parts.append(
+            '<button type="button" data-kk="play" aria-label="Play" aria-pressed="false">\u25b6</button>'
+        )
+    if c.has("step"):
+        parts.append(
+            '<button type="button" data-kk="next" aria-label="Next frame">\u25b6\u258f</button>'
+        )
+    if c.has("last"):
+        parts.append('<button type="button" data-kk="last" aria-label="Go to end">\u23ed</button>')
+    if c.has("seek"):
+        parts.append(
+            '<input type="range" data-kk="seek" min="0" value="0" aria-label="Timeline">'
+            '<output data-kk="time" aria-live="off">0.00 s</output>'
+        )
+    if c.has("speed"):
+        speeds = "".join(f'<option value="{s}">{s}\u00d7</option>' for s in (0.25, 0.5, 1, 2, 4))
+        parts.append(
+            f'<label>Speed <select data-kk="speed" aria-label="Playback speed">{speeds}</select></label>'
+        )
+    if c.has("loop"):
+        parts.append('<label><input type="checkbox" data-kk="loop"> Loop</label>')
+    parts.append(reset)
+    html = (
+        '<div class="kk-controls" role="toolbar" aria-label="Animation controls">'
+        + "".join(parts)
+        + "</div>"
+    )
+    if markers and c.has("markers"):
         buttons = "".join(
             f'<button type="button" data-kk-marker={quoteattr(name)}>{escape(name)}</button>'
             for name in markers
         )
-        marker_html = f'<div class="kk-markers" role="group" aria-label="Markers">{buttons}</div>'
-    return (
-        '<div class="kk-controls" role="toolbar" aria-label="Animation controls">'
-        '<button type="button" data-kk="first" aria-label="Go to start">\u23ee</button>'
-        '<button type="button" data-kk="prev" aria-label="Previous frame">\u25c0</button>'
-        '<button type="button" data-kk="play" aria-label="Play" aria-pressed="false">\u25b6</button>'
-        '<button type="button" data-kk="next" aria-label="Next frame">\u25b6\u258f</button>'
-        '<button type="button" data-kk="last" aria-label="Go to end">\u23ed</button>'
-        '<input type="range" data-kk="seek" min="0" value="0" aria-label="Timeline">'
-        '<output data-kk="time" aria-live="off">0.00 s</output>'
-        f'<label>Speed <select data-kk="speed" aria-label="Playback speed">{speeds}</select></label>'
-        '<label><input type="checkbox" data-kk="loop"> Loop</label>'
-        + (
-            '<button type="button" data-kk="reset" aria-label="Reset view">Reset view</button>'
-            if has_reset
-            else ""
-        )
-        + "</div>"
-        + marker_html
-    )
+        html += f'<div class="kk-markers" role="group" aria-label="Markers">{buttons}</div>'
+    return html
 
 
 class InteractiveRenderer:
@@ -176,7 +204,20 @@ class InteractiveRenderer:
                 "height": st.height,
             }
         )
-        controls = _controls(animation.duration, markers, st.controls) if st.controls else ""
+        ctl = (
+            st.controls
+            if isinstance(st.controls, PlaybackControls)
+            else PlaybackControls(show=() if not st.controls else PlaybackControls().show)
+        )
+        controls = _controls(animation.duration, markers, ctl)
+        plan = plan_interactions(
+            animation.interactions, INTERACTIVE_CAPABILITIES, Degradation(st.degradation)
+        )
+        if animation.interactions is not None:
+            data["interactions"] = {
+                "bindings": [b.to_data() for b in plan.active],
+                "ranges": {k: list(v) for k, v in animation.interactions.ranges.items()},
+            }
         caption = (
             f'<figcaption class="kk-sr">{escape(label)}</figcaption>' if st.description else ""
         )
@@ -199,6 +240,8 @@ class InteractiveRenderer:
             element_ids=ids,
             warnings=warnings,
             network_dependencies=deps,
+            preserved=plan.preserved,
+            degraded=plan.degraded,
         )
 
     # ------------------------------------------------------------------ 2D
