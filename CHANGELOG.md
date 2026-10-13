@@ -14,3 +14,4 @@ All notable changes are recorded here. The format follows
 - Immutable 2D geometry (`Vec2`, `Matrix3`, `Transform2D`, `Bounds2D`, `Path2D` with exact bounds) and scene model (`Point2D`, `Line2D`, `PathNode2D`, `Shape2D`, `Group2D`, `Text2D`, `Camera2D`, `Scene2D`) with stable ids, an overlay, and snapshot `bind`.
 - Neutral `TextAsset` contract and the `Animation` facade with lazy `frames()`.
 - Path normalization (`normalize_paths`, `PathMorph` overrides, diagnostics) and automatic `SceneTransition.between` keyed by stable ids, with enter/exit policies, cross-fade fallbacks and explicit track overrides; `Shape2D/PathNode2D.morph_to`.
+- `minimal` theme and `Stroke`/`Fill` helpers, whole-animation single-viewport layout (`resolve_layout`), and guides (axes, grid, legend, color bar, annotation) compiled to ordinary scene nodes.
