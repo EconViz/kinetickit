@@ -69,6 +69,10 @@ class Motion(ABC):
         """The sequential stages of this motion; each stage is a tuple of parallel members."""
         return ((self,),)
 
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        """Every property this motion animates."""
+        return frozenset()
+
     # -- fluent composition -------------------------------------------------------------
     def then(self, other: Motion, *, gap: float = 0.0) -> Motion:
         """Start ``other`` after every member of the current stage has finished."""
@@ -150,6 +154,9 @@ class Chain(Motion):
     def _as_stages(self) -> tuple[Stage, ...]:
         return self.layout
 
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return frozenset(t for s in self.layout for m in s.members for t in m.targets())
+
     def _compile(self, pre: PreState, registry: InterpolatorRegistry) -> Compiled:
         acc: list[Segment] = []
         markers: list[tuple[str, float]] = []
@@ -189,6 +196,9 @@ class Delay(Motion):
     child: Motion
     seconds: float
 
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return self.child.targets()
+
     @property
     def duration(self) -> float:
         return self.seconds + self.child.duration
@@ -211,6 +221,9 @@ class Repeat(Motion):
         if isinstance(self.times, bool) or not isinstance(self.times, int) or self.times < 1:
             raise ConfigurationError(f"repeat count must be a positive integer, got {self.times!r}")
 
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return self.child.targets()
+
     @property
     def duration(self) -> float:
         return self.child.duration * self.times
@@ -228,6 +241,9 @@ class Repeat(Motion):
 @dataclass(frozen=True, slots=True)
 class Reverse(Motion):
     child: Motion
+
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return self.child.targets()
 
     @property
     def duration(self) -> float:
@@ -255,6 +271,9 @@ class Trim(Motion):
                 f"trim window [{self.start}, {end}] must lie within [0, {self.child.duration}]"
             )
         object.__setattr__(self, "end", end)
+
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return self.child.targets()
 
     @property
     def duration(self) -> float:
@@ -287,6 +306,9 @@ class Marked(Motion):
     def __post_init__(self) -> None:
         if not self.name:
             raise ConfigurationError("a marker needs a non-empty name")
+
+    def targets(self) -> frozenset[PropertyRef[Any]]:
+        return self.child.targets()
 
     @property
     def duration(self) -> float:
