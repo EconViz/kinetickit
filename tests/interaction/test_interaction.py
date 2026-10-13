@@ -4,6 +4,7 @@ import io
 import json
 
 import pytest
+from tests.support.extras import needs_interactive, needs_studio
 
 from kinetickit.animation import Animation
 from kinetickit.errors import CapabilityError, ConfigurationError
@@ -145,6 +146,7 @@ def test_required_and_optional_capabilities_are_declared():
     assert InteractionSpec.from_data(json.loads(json.dumps(data))).bindings == spec.bindings
 
 
+@needs_interactive
 def test_same_model_maps_to_html_and_degrades_elsewhere_by_explicit_policy():
     spec = InteractionSpec(
         (Binding(Event.CLICK, Toggle(), "p"), Binding(Event.HOVER_ENTER, Select(), "q"))
@@ -158,6 +160,7 @@ def test_same_model_maps_to_html_and_degrades_elsewhere_by_explicit_policy():
         plan_interactions(spec, get_renderer("vector").capabilities, Degradation.FAIL)
 
 
+@needs_studio
 def test_required_bindings_fail_before_any_output(tmp_path):
     spec = InteractionSpec((Binding(Event.CLICK, Toggle(), "p", required=True),))
     a = anim(spec)
@@ -168,6 +171,7 @@ def test_required_bindings_fail_before_any_output(tmp_path):
     assert {"click", "playback"} <= set(a.save(tmp_path / "ok.html").preserved)
 
 
+@needs_interactive
 def test_optional_bindings_are_reported_as_degraded_in_manifests():
     spec = InteractionSpec((Binding(Event.CLICK, Toggle(), "p"),))
     svg = anim(spec).save(io.BytesIO(), format="svg")
@@ -178,6 +182,7 @@ def test_optional_bindings_are_reported_as_degraded_in_manifests():
     assert drag.bindings[0].capabilities == {Interaction.CLICK, Interaction.PLAYBACK}
 
 
+@needs_interactive
 def test_html_embeds_only_serializable_data_and_active_bindings():
     spec = InteractionSpec(
         (
@@ -233,6 +238,7 @@ def test_state_machine_loop_reverse_seek_and_ranges():
         PlayerState(2.0, time=3.0)
 
 
+@needs_interactive
 def test_controls_model_and_html_rendering():
     assert PlaybackControls().has("play") and PlaybackControls().keys["Space"]
     assert PlaybackControls(keyboard=False).keys == {}

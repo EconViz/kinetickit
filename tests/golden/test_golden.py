@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from tests.support.extras import needs_interactive
 
 from kinetickit.conformance import fixtures
 
@@ -118,6 +119,7 @@ def html_skeleton(animation, **kw):
     return out
 
 
+@needs_interactive
 def test_html_2d_golden():
     check_json(
         "points-lines-shapes.html.json",
