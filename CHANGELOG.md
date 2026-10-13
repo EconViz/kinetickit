@@ -4,7 +4,10 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project follows
 [Semantic Versioning](https://semver.org/) from 1.0.
 
-## Unreleased
+## 1.0.0b1 — 2026-10-13
+
+First 1.0 beta: the motion, scene, renderer, exporter and artifact contracts listed in
+`docs/compatibility.md` are intended to be stable; they may still change between pre-releases.
 
 ### Added
 - Package scaffold for Python 3.10–3.13, typed errors and enforced import boundaries.
@@ -24,3 +27,14 @@ All notable changes are recorded here. The format follows
 - Portable interaction model: `Event`/`Interaction` semantics, serializable declarative actions (`Play`, `Seek`, `PlayRange`, `Select`, `SetProperty`, ...), `Binding`/`InteractionSpec` validated against stable node ids and markers, a deterministic `PlayerState` machine, `PlaybackControls`, and capability-aware `plan_interactions` (required bindings fail before output; optional ones degrade explicitly and are reported in the manifest). The HTML runtime executes the same bindings.
 - Accessibility: `Semantics` (role, label, description, reading order, decorative) on every node, `AccessibilityInfo` and `ReducedMotion` policy; SVG exports titles/descriptions/roles/labels and applies reduced motion (no autoplay, representative state); HTML adds an object list in reading order, a reduced-motion notice and native keyboard-operable controls; GIF requires a description when accessibility output is requested and returns it with a representative PNG (companion PNG/JSON only when asked). Manifests list what each output preserves or degrades.
 - Quality: published `kinetickit.conformance` (shared 2D/3D/timing/typography fixtures and a suite every exporter must pass), golden artifacts for GIF, Animated SVG and HTML, performance/size budgets with a CI report (`python -m kinetickit.conformance`), generic examples (objects, chart, surface, external fonts, interactive/accessible) that use only public API, and `kinetickit.adapters` for animating arbitrary object models.
+- Public top-level API (`from kinetickit import Animation, Scene2D, ...`), `kinetickit.adapters`, and release documentation (`docs/outputs.md`, `docs/migration.md`, `docs/compatibility.md`).
+- Feasibility proof that a MosaicKit parameter sweep extracts into a KineticKit animation through public adapters only (`tests/integrations/test_mosaickit_extraction.py`).
+
+### Fixed
+- The base install (no extras) no longer fails to import `kinetickit.exporters` when Pillow is absent; missing optional renderers raise `CapabilityError` with an install hint.
+
+### Known limitations
+- Projected 3D vector output samples the animation and fixes painter's order at `t = 0`; it refuses animations whose projected primitives enter or leave the view.
+- Interactive 3D is pre-sampled; `drag`, implicit surfaces, 3D text and animated overlays on 3D scenes are not supported.
+- GlyphKit is an optional, separately installed integration and is not declared as an extra until it is published.
+- The GitHub Actions matrix has not been observed green yet (jobs were not started because of an account billing problem); all gates were run locally on Python 3.10, 3.12 and 3.13.
