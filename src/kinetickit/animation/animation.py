@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Iterator
 from typing import Any
 
@@ -11,6 +12,11 @@ from kinetickit.interpolation import DEFAULT_REGISTRY, InterpolatorRegistry
 from kinetickit.scene.scene import SceneBase
 from kinetickit.scheduler import FixedFPS, Scheduler
 from kinetickit.timeline import Hold, Motion, Timeline
+
+
+def _exporters() -> Any:
+    """Late-bound so the animation facade has no static dependency on exporters."""
+    return importlib.import_module("kinetickit.exporters")
 
 
 class Animation:
@@ -61,3 +67,25 @@ class Animation:
         d = self.duration
         for i, t in enumerate(scheduler.times(d)):
             yield Frame(i, t, (t / d) if d > 0 else 0.0, self.sample(t))
+
+    # -- output ------------------------------------------------------------------------
+    def save(self, target: Any, *, renderer: str | None = None, **options: Any) -> Any:
+        """Export to ``target`` (path, binary/text stream or destination).
+
+        The format comes from ``renderer`` (``"vector"`` → SVG, ``"raster"`` → GIF,
+        ``"interactive"`` → HTML) or the file suffix. Extra keyword arguments are the settings of
+        the chosen exporter. Returns an :class:`~kinetickit.exporters.ExportManifest`.
+        """
+        return _exporters().export(self, target, renderer=renderer, **options)
+
+    def to_bytes(self, format: str, **options: Any) -> bytes:
+        """Render in memory and return the encoded bytes."""
+        exporters = _exporters()
+        dest = exporters.BytesDestination()
+        exporters.export(self, dest, format=format, **options)
+        data: bytes = dest.getvalue()
+        return data
+
+    def to_svg(self, **options: Any) -> str:
+        """The native Animated SVG document as text."""
+        return self.to_bytes("svg", **options).decode("utf-8")

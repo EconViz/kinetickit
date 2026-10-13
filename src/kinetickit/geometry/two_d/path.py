@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -166,6 +167,72 @@ class Path2D:
             )
         )
 
+    def explicit_close(self) -> Path2D:
+        """Replace each ``Z`` with an explicit line back to the subpath start."""
+        out: list[PathCommand] = []
+        cur = start = Vec2(0.0, 0.0)
+        for c in self.commands:
+            if c.kind == "M":
+                cur = start = c.points[0]
+                out.append(c)
+            elif c.kind == "Z":
+                if cur != start:
+                    out.append(PathCommand("L", (start,)))
+                cur = start
+            else:
+                cur = c.points[-1]
+                out.append(c)
+        return Path2D(tuple(out))
+
+    def trimmed(self, progress: float) -> Path2D:
+        """The first ``progress`` (0..1) of the path by arc length, with identical structure.
+
+        Closing segments become explicit lines. Commands past the cut collapse onto the cut
+        point instead of disappearing, so every ``trimmed`` path of one source has the same
+        command kinds and can be interpolated or animated point by point.
+        """
+        base = self.explicit_close()
+        if progress >= 1.0:
+            return base
+        pieces: list[tuple[int, float]] = []  # (command index, length) for drawn segments
+        cur = Vec2(0.0, 0.0)
+        for i, c in enumerate(base.commands):
+            if c.kind == "M":
+                cur = c.points[0]
+            else:
+                pieces.append((i, _segment_length(cur, c)))
+                cur = c.points[-1]
+        total = sum(length for _, length in pieces)
+        target = max(0.0, progress) * total
+        lengths = dict(pieces)
+        cmds: list[PathCommand] = []
+        cur = Vec2(0.0, 0.0)
+        walked = 0.0
+        cut: Vec2 | None = None
+        for i, c in enumerate(base.commands):
+            if c.kind == "M":
+                if cut is None:
+                    cur = c.points[0]
+                    cmds.append(c)
+                else:
+                    cmds.append(PathCommand("M", (cut,)))
+                continue
+            if cut is not None:
+                cmds.append(PathCommand(c.kind, (cut,) * ARITY[c.kind]))
+                continue
+            length = lengths[i]
+            if walked + length < target or (length == 0.0 and walked < target):
+                cmds.append(c)
+                cur = c.points[-1]
+                walked += length
+                continue
+            frac = 0.0 if length == 0.0 else (target - walked) / length
+            t = _param_at_fraction(cur, c, frac)
+            head = _split_head(cur, c, t)
+            cmds.append(head)
+            cut = head.points[-1]
+        return Path2D(tuple(cmds))
+
     def to_svg(self, precision: int = 6) -> str:
         """SVG path data in world coordinates (no axis flip)."""
 
@@ -254,6 +321,59 @@ class Path2DInterpolator:
                 for a, b in zip(start.commands, end.commands, strict=True)
             )
         )
+
+
+def _segment_points(a: Vec2, c: PathCommand, n: int) -> list[Vec2]:
+    if c.kind == "L":
+        return [a + (c.points[0] - a) * (i / n) for i in range(n + 1)]
+    if c.kind == "Q":
+        q, b = c.points
+        return [_quad_at(a, q, b, i / n) for i in range(n + 1)]
+    p1, p2, p3 = c.points
+    return [_cubic_at(a, p1, p2, p3, i / n) for i in range(n + 1)]
+
+
+def _segment_length(a: Vec2, c: PathCommand) -> float:
+    if c.kind == "L":
+        return (c.points[0] - a).length()
+    pts = _segment_points(a, c, 64)
+    return sum((q - p).length() for p, q in itertools.pairwise(pts))
+
+
+def _param_at_fraction(a: Vec2, c: PathCommand, frac: float) -> float:
+    """Curve parameter ``t`` at ``frac`` of the segment's arc length."""
+    if c.kind == "L" or frac <= 0.0:
+        return max(0.0, frac) if c.kind == "L" else 0.0
+    n = 128
+    pts = _segment_points(a, c, n)
+    cum = [0.0]
+    for p, q in itertools.pairwise(pts):
+        cum.append(cum[-1] + (q - p).length())
+    goal = min(1.0, frac) * cum[-1]
+    for i in range(1, n + 1):
+        if cum[i] >= goal:
+            span = cum[i] - cum[i - 1]
+            local = 0.0 if span == 0.0 else (goal - cum[i - 1]) / span
+            return (i - 1 + local) / n
+    return 1.0
+
+
+def _lerp2(a: Vec2, b: Vec2, t: float) -> Vec2:
+    return a + (b - a) * t
+
+
+def _split_head(a: Vec2, c: PathCommand, t: float) -> PathCommand:
+    """The first part of segment ``c`` (starting at ``a``) up to parameter ``t``."""
+    if c.kind == "L":
+        return PathCommand("L", (_lerp2(a, c.points[0], t),))
+    if c.kind == "Q":
+        q, b = c.points
+        ab, qb = _lerp2(a, q, t), _lerp2(q, b, t)
+        return PathCommand("Q", (ab, _lerp2(ab, qb, t)))
+    p1, p2, p3 = c.points
+    ab, bc, cd = _lerp2(a, p1, t), _lerp2(p1, p2, t), _lerp2(p2, p3, t)
+    abc, bcd = _lerp2(ab, bc, t), _lerp2(bc, cd, t)
+    return PathCommand("C", (ab, abc, _lerp2(abc, bcd, t)))
 
 
 def points_of(commands: Sequence[PathCommand]) -> tuple[Vec2, ...]:
