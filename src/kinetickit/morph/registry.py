@@ -5,8 +5,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from kinetickit.errors import ConfigurationError
+from kinetickit.geometry.three_d import MeshData, SurfaceGrid, Vec3Array
 from kinetickit.geometry.two_d import Path2D
 from kinetickit.morph.diagnostics import MorphDiagnostic
+from kinetickit.morph.mesh import (
+    MeshMorph,
+    SurfaceMorph,
+    normalize_meshes,
+    normalize_points,
+    normalize_surfaces,
+)
 from kinetickit.morph.path import NormalizedPair, PathMorph, normalize_paths
 
 Normalizer = Callable[[Any, Any, Any], NormalizedPair]
@@ -37,7 +46,31 @@ def _path(start: Path2D, end: Path2D, spec: PathMorph | None) -> NormalizedPair:
     return normalize_paths(start, end, spec)
 
 
+def _check_spec(spec: Any, expected: type, kind: str) -> Any:
+    if spec is not None and not isinstance(spec, expected):
+        raise ConfigurationError(f"a {kind} needs a {expected.__name__}, got {type(spec).__name__}")
+    return spec
+
+
+def _mesh(start: MeshData, end: MeshData, spec: Any) -> NormalizedPair:
+    r = normalize_meshes(start, end, _check_spec(spec, MeshMorph, "mesh"))
+    return NormalizedPair(r.start, r.end, r.diagnostics, r.compatible)  # type: ignore[arg-type]
+
+
+def _surface(start: SurfaceGrid, end: SurfaceGrid, spec: Any) -> NormalizedPair:
+    r = normalize_surfaces(start, end, _check_spec(spec, SurfaceMorph, "surface"))
+    return NormalizedPair(r.start, r.end, r.diagnostics, r.compatible)  # type: ignore[arg-type]
+
+
+def _points(start: Vec3Array, end: Vec3Array, spec: Any) -> NormalizedPair:
+    r = normalize_points(start, end)
+    return NormalizedPair(r.start, r.end, r.diagnostics, r.compatible)  # type: ignore[arg-type]
+
+
 register_normalizer(Path2D, _path)
+register_normalizer(MeshData, _mesh)
+register_normalizer(SurfaceGrid, _surface)
+register_normalizer(Vec3Array, _points)
 
 __all__ = [
     "MorphDiagnostic",
