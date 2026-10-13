@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from tests.support.extras import needs_interactive
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
@@ -73,6 +74,7 @@ def test_external_font_example_when_glyphkit_is_available(tmp_path):
     assert "@font-face" in svg and "Demo Sans" in svg  # the caller's font survives export
 
 
+@needs_interactive
 def test_the_adapter_example_proves_generality(tmp_path):
     mod = load(EXAMPLES / "arbitrary_objects.py")
     files = mod.main(tmp_path)

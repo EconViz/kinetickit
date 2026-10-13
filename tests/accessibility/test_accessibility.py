@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests.support.extras import needs_interactive
 from tests.support.smil import Q, parse
 
 from kinetickit.accessibility import AccessibilityInfo, ReducedMotion, Semantics, reading_order
@@ -124,6 +125,7 @@ def test_reduced_motion_policy_validation_and_times():
         AccessibilityInfo(title=" ")
 
 
+@needs_interactive
 def test_reduced_motion_removes_nonessential_movement_in_html():
     html = build().to_bytes("html").decode()
     data = json.loads(re.search(r'id="kk-data">(.*?)</script>', html, re.S).group(1))
@@ -145,6 +147,7 @@ def test_reduced_motion_removes_nonessential_movement_in_html():
     assert "prefers-reduced-motion" not in inline  # the page runtime owns reduced motion
 
 
+@needs_interactive
 def test_html_exposes_reading_order_and_labels_as_text():
     anim = build(
         accessibility=AccessibilityInfo(title="T", description="D", long_description="Long text")
@@ -157,6 +160,7 @@ def test_html_exposes_reading_order_and_labels_as_text():
     assert 'aria-label="D"' in html and "<title>T</title>" in html
 
 
+@needs_interactive
 def test_interactive_controls_are_native_and_keyboard_operable():
     tags = re.findall(r"<(button|input|select|div|span)([^>]*)>", build().to_bytes("html").decode())
     controls = [(t, a) for t, a in tags if "data-kk=" in a]
@@ -168,6 +172,7 @@ def test_interactive_controls_are_native_and_keyboard_operable():
     assert 'e.key === " "' in build().to_bytes("html").decode()
 
 
+@needs_interactive
 def test_state_is_not_communicated_by_color_alone():
     html = build().to_bytes("html").decode()
     selected = re.search(
@@ -239,6 +244,7 @@ def test_first_frame_representative_image():
     assert a.tobytes() != b.tobytes()
 
 
+@needs_interactive
 def test_manifests_document_preserved_and_degraded_semantics():
     anim = build(accessibility=AccessibilityInfo(title="T", description="D"))
     svg = anim.save(io.BytesIO(), format="svg")
