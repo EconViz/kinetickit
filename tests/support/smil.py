@@ -41,7 +41,12 @@ def evaluate(anim: ET.Element, t: float) -> str:
     if anim.get("calcMode") == "discrete":
         idx = max(i for i, kt in enumerate(times) if kt <= u + 1e-12)
         return values[idx]
-    splines = [tuple(float(x) for x in s.split()) for s in anim.get("keySplines", "").split(";")]
+    linear = anim.get("calcMode") == "linear"
+    splines = (
+        []
+        if linear
+        else [tuple(float(x) for x in s.split()) for s in anim.get("keySplines", "").split(";")]
+    )
     if u >= times[-1]:
         return values[-1]
     # the last interval whose start <= u (jumps share a time; the later knot wins)
@@ -56,7 +61,7 @@ def evaluate(anim: ET.Element, t: float) -> str:
     if span <= 0:
         return values[i + 1]
     local = (u - times[i]) / span
-    p = CubicBezier(*splines[i])(local)
+    p = local if linear else CubicBezier(*splines[i])(local)
     return _lerp(values[i], values[i + 1], p)
 
 

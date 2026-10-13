@@ -126,10 +126,13 @@ def test_antialiasing_can_be_disabled():
     assert len(np.unique(hard[..., 0])) < len(np.unique(aa[..., 0]))
 
 
-def test_3d_scenes_and_missing_capabilities_are_rejected_early():
+def test_missing_capabilities_are_reported_early():
+    from kinetickit.renderers import require
+
     r = get_renderer("raster")
     assert r.capabilities.name == "raster"
-    with pytest.raises(CapabilityError):
-        r.capabilities.validate(
-            __import__("kinetickit.renderers", fromlist=["require"]).require(geometry=["mesh"])
-        )
+    with pytest.raises(CapabilityError, match="interaction:drag"):
+        r.capabilities.validate(require(interactions=["drag"]))
+    with pytest.raises(CapabilityError, match="dimension:native-3d"):
+        r.capabilities.validate(require(dimensions=["native-3d"]))
+    r.capabilities.validate(require(dimensions=["3d"], geometry=["mesh", "surface"]))
