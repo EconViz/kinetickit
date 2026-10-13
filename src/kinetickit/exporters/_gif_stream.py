@@ -155,3 +155,11 @@ class GifStreamWriter:
         if not self._started:
             raise RenderError("no frames were written")
         self.out.write(b"\x3b")
+
+
+def encode_png(rgba: npt.NDArray[np.uint8], background: tuple[int, int, int]) -> bytes:
+    """A deterministic opaque PNG of one frame (used as the representative image)."""
+    image = Image.fromarray(_flatten(rgba, background), "RGB")
+    buf = io.BytesIO()
+    image.save(buf, format="PNG", optimize=False, compress_level=6)
+    return buf.getvalue()

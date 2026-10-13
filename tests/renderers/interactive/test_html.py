@@ -143,7 +143,10 @@ def test_runtime_honours_reduced_motion_and_exposes_a_public_api():
     html = anim.to_bytes("html").decode()
     assert "prefers-reduced-motion: reduce" in html
     assert "window.kinetickit" in html and "kinetickit:" in html
-    assert "if (reduce) { show(D); }" in html  # final state, no autoplay
+    assert (
+        "if (reduce) { show(data.reducedTime" in html
+        and "else { show(0); if (data.autoplay)" in html
+    )
 
 
 def test_noscript_fallback_is_documented_in_the_page():
