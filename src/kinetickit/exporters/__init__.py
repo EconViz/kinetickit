@@ -12,11 +12,13 @@ from kinetickit.exporters.destination import (
     as_destination,
 )
 from kinetickit.exporters.gif import GIFExporter, GifSettings
+from kinetickit.exporters.html import HTMLExporter
 from kinetickit.exporters.manifest import ExportManifest
 from kinetickit.exporters.registry import available_formats, export, register_exporter
 
 register_exporter("svg", AnimatedSVGExporter.from_options, replace=True)
 register_exporter("gif", GIFExporter.from_options, replace=True)
+register_exporter("html", HTMLExporter.from_options, replace=True)
 
 __all__ = [
     "AnimatedSVGExporter",
@@ -26,6 +28,7 @@ __all__ = [
     "FileDestination",
     "GIFExporter",
     "GifSettings",
+    "HTMLExporter",
     "RenderCostEstimate",
     "RenderCostWarning",
     "StreamDestination",
