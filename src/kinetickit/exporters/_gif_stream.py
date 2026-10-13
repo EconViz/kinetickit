@@ -163,3 +163,13 @@ def encode_png(rgba: npt.NDArray[np.uint8], background: tuple[int, int, int]) ->
     buf = io.BytesIO()
     image.save(buf, format="PNG", optimize=False, compress_level=6)
     return buf.getvalue()
+
+
+def inspect_gif(data: bytes) -> tuple[int, list[int]]:
+    """(frame count, per-frame durations in ms) of an encoded GIF; used by conformance checks."""
+    image = Image.open(io.BytesIO(data))
+    durations = []
+    for i in range(image.n_frames):
+        image.seek(i)
+        durations.append(int(image.info.get("duration", 0)))
+    return image.n_frames, durations
