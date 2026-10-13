@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150" role="img">
+  <g id="world" transform="matrix(15 0 0 -15 25 150)">
+    <g id="p" data-kk-id="p" data-kk-kind="point" transform="translate(2 2)">
+      <path d="M1 0A1 1 0 1 0-1 0A1 1 0 1 0 1 0Z" fill="#e4572e" stroke="none" transform="scale(0.4667 0.4667)"/>
+      <animateTransform attributeName="transform" type="translate" begin="0s" dur="2s" values="2 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2;8 2" keyTimes="0;0.5;0.520833;0.541667;0.5625;0.583333;0.604167;0.625;0.645833;0.666667;0.6875;0.708333;0.729167;0.75;0.770833;0.791667;0.8125;0.833333;0.854167;0.875;0.895833;0.916667;0.9375;0.958333;0.979167;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1" fill="freeze"/>
+    </g>
+    <path id="l" data-kk-id="l" data-kk-kind="line" d="M0 0L0 0" fill="none" stroke="#1f2933" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+      <animate attributeName="d" begin="0s" dur="2s" values="M0 0L0 0;M0 0L0 0;M0 0L9 0" keyTimes="0;0.5;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1" fill="freeze"/>
+    </path>
+    <path id="area" data-kk-id="area" data-kk-kind="shape" opacity="0" d="M5 5 L9 5 L9 9 L5 9 Z M6 6 L8 6 L8 8 L6 8 Z" fill="#3e7cb1" fill-rule="evenodd" stroke="none">
+      <animate attributeName="opacity" begin="0s" dur="2s" values="0;0;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1" keyTimes="0;0.5;0.75;0.760417;0.770833;0.78125;0.791667;0.802083;0.8125;0.822917;0.833333;0.84375;0.854167;0.864583;0.875;0.885417;0.895833;0.90625;0.916667;0.927083;0.9375;0.947917;0.958333;0.96875;0.979167;0.989583;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1" fill="freeze"/>
+    </path>
+  </g>
+  <script type="application/ecmascript">(function(){var s=document.currentScript.ownerSVGElement;if(window.matchMedia&amp;&amp;matchMedia("(prefers-reduced-motion: reduce)").matches&amp;&amp;s.pauseAnimations){s.pauseAnimations();s.setCurrentTime(2);}})();</script>
+</svg>

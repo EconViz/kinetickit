@@ -72,6 +72,11 @@ strict = true
 files = ["src/kinetickit"]
 
 [[tool.mypy.overrides]]
+# fixtures deliberately use the ergonomic tuple/str forms that nodes coerce at runtime
+module = ["kinetickit.conformance.fixtures"]
+disable_error_code = ["arg-type", "no-untyped-def"]
+
+[[tool.mypy.overrides]]
 module = ["matplotlib.*", "plotly.*", "PIL.*", "glyphkit.*", "fontTools.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
