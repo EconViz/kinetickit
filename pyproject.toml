@@ -21,6 +21,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = ["numpy>=1.24"]
+keywords = ["animation", "svg", "gif", "3d", "morphing", "timeline", "accessibility"]
+
+[project.urls]
+Homepage = "https://github.com/EconViz/kinetickit"
+Repository = "https://github.com/EconViz/kinetickit"
+Issues = "https://github.com/EconViz/kinetickit/issues"
+Changelog = "https://github.com/EconViz/kinetickit/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 raster = ["matplotlib>=3.7", "pillow>=10.0"]

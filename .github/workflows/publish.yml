@@ -1,0 +1,46 @@
+name: Publish
+
+# Publishes to PyPI with Trusted Publishing (no API token). Create a GitHub release whose tag is
+# `v<version>` (mark pre-releases as such) to build, verify and upload the distributions.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - name: Gate before publishing
+        run: |
+          uv run ruff check .
+          uv run mypy
+          uv run lint-imports
+          uv run pytest -m "not slow"
+      - run: uv build
+      - name: Release tag must match the package version
+        run: |
+          version=$(uv run python -c "import kinetickit; print(kinetickit.__version__)")
+          test "v${version}" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} != v${version}"; exit 1; }
+          ls dist
+      - run: uvx twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
