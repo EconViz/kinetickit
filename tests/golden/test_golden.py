@@ -99,6 +99,7 @@ def test_gif_structure_golden(name):
 def html_skeleton(animation, **kw):
     html = animation.to_bytes("html", **kw).decode()
     data = json.loads(re.search(r'id="kk-data">(.*?)</script>', html, re.S).group(1))
+    data.pop("generator", None)  # the version string changes every release
     data.pop("traces", None)
     layout = data.pop("layout", None)
     frames = data.pop("frames", None)

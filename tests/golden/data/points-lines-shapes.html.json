@@ -17,7 +17,6 @@
     "dimension": 2,
     "duration": 2.0,
     "fps": 30,
-    "generator": "kinetickit 0.1.0.dev0",
     "height": 200,
     "loop": false,
     "markers": {},
