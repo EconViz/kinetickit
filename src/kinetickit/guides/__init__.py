@@ -9,7 +9,6 @@ from kinetickit.guides.guides import (
     Grid2D,
     Legend,
     LegendEntry,
-    TextFactory,
 )
 from kinetickit.guides.ticks import format_tick, nice_ticks
 
@@ -20,7 +19,6 @@ __all__ = [
     "Grid2D",
     "Legend",
     "LegendEntry",
-    "TextFactory",
     "format_tick",
     "nice_ticks",
 ]
