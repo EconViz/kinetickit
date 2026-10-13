@@ -44,6 +44,8 @@ class HTMLExporter:
             description=self.settings.description,
             warnings=document.warnings,
             network_dependencies=document.network_dependencies,
+            preserved=document.preserved,
+            degraded=document.degraded,
             details={
                 "dimension": document.dimension,
                 "packaging": self.settings.packaging,

@@ -33,6 +33,7 @@ class Animation:
         motion: Motion | None = None,
         *,
         registry: InterpolatorRegistry = DEFAULT_REGISTRY,
+        interactions: Any = None,
     ) -> None:
         if not isinstance(scene, SceneBase):
             raise ConfigurationError("Animation needs a Scene2D or Scene3D")
@@ -40,6 +41,9 @@ class Animation:
         self.motion: Motion = motion if motion is not None else Hold(0.0)
         self.registry = registry
         self.timeline = Timeline(self.motion, scene.values(), registry)
+        self.interactions = interactions
+        if interactions is not None:
+            interactions.validate(scene, self.timeline.markers, self.timeline.duration)
         for ref in self.timeline.properties:
             node = scene.find(ref.node_id)
             if node is None:

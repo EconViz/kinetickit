@@ -17,6 +17,8 @@ RUNTIME_CSS = r"""
 .kk-markers{display:flex;flex-wrap:wrap;gap:.4rem}
 .kk-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .kk-fallback{max-width:60ch}
+svg.kk-svg [data-kk-selected="true"] path,svg.kk-svg path[data-kk-selected="true"]{stroke:#e4572e;stroke-width:3px;vector-effect:non-scaling-stroke}
+svg.kk-svg [data-kk-id]:focus-visible{outline:3px solid #0b6bcb;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.kk-figure *{scroll-behavior:auto!important}}
 """
 
@@ -28,7 +30,9 @@ RUNTIME_JS = r"""
   var root = document.getElementById("kk-root");
   var D = data.duration || 0;
   var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  var state = { time: 0, playing: false, speed: data.speed || 1, loop: !!data.loop };
+  var state = { time: 0, playing: false, speed: data.speed || 1, loop: !!data.loop, direction: 1, range: null };
+  var selected = {};
+  var spec = data.interactions || { bindings: [], ranges: {} };
   var handlers = {};
   var q = function (sel) { return root.querySelector(sel); };
   var ui = {
@@ -38,6 +42,11 @@ RUNTIME_JS = r"""
     reset: q("[data-kk=reset]"), live: q("[data-kk=live]")
   };
 
+  var EVENT = { hover: function (d) { return d.state === "leave" ? "hover-leave" : "hover-enter"; },
+    click: "click", dblclick: "dblclick", focus: "focus", camera: "camera-change", end: "playback-end",
+    select: "select", deselect: "deselect" };
+  var inDispatch = 0;
+
   function emit(type, detail) {
     detail = detail || {};
     detail.type = type;
@@ -45,6 +54,23 @@ RUNTIME_JS = r"""
     var list = (handlers[type] || []).concat(handlers["*"] || []);
     for (var i = 0; i < list.length; i++) { try { list[i](detail); } catch (e) { console.error(e); } }
     root.dispatchEvent(new CustomEvent("kinetickit:" + type, { detail: detail, bubbles: true }));
+    dispatch(type, detail);
+  }
+
+  function dispatch(type, detail) {
+    var m = EVENT[type];
+    var name = typeof m === "function" ? m(detail) : m;
+    if (!name || inDispatch > 8) return;
+    var bs = spec.bindings || [];
+    inDispatch++;
+    try {
+      for (var i = 0; i < bs.length; i++) {
+        var b = bs[i];
+        if (b.event !== name) continue;
+        if (b.target !== null && b.target !== undefined && b.target !== detail.id) continue;
+        for (var j = 0; j < b.actions.length; j++) run(b.actions[j], detail.id);
+      }
+    } finally { inDispatch--; }
   }
 
   /* ---- 2D: the exported native SVG, driven through its SMIL timeline ---- */
@@ -160,22 +186,26 @@ RUNTIME_JS = r"""
     refresh();
   }
 
+  function bounds() { return state.range ? state.range : [0, D]; }
   var raf = null, last = 0;
   function tick(now) {
     if (!state.playing) return;
-    var t = state.time + (now - last) / 1000 * state.speed;
+    var bd = bounds(), lo = bd[0], hi = bd[1];
+    var t = state.time + (now - last) / 1000 * state.speed * state.direction;
     last = now;
-    if (t >= D) {
-      if (state.loop && D > 0) { t = t % D; emit("loop"); }
-      else { show(D); pause(); emit("end"); return; }
+    if (t < lo || t > hi) {
+      if (state.loop && hi > lo) { t = lo + (((t - lo) % (hi - lo)) + (hi - lo)) % (hi - lo); emit("loop"); }
+      else { var e = t > hi ? hi : lo; state.range = null; show(e); pause(); emit("end"); return; }
     }
     show(t);
     raf = requestAnimationFrame(tick);
   }
   function play() {
     if (D <= 0) return;
-    if (state.time >= D) show(0);
-    state.playing = true; last = performance.now(); raf = requestAnimationFrame(tick);
+    var bd = bounds();
+    if (state.direction === 1 && state.time >= bd[1]) show(bd[0]);
+    else if (state.direction === -1 && state.time <= bd[0]) show(bd[1]);
+    state.playing = true; last = performance.now(); if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
     refresh(); emit("play");
   }
   function pause() {
@@ -187,6 +217,57 @@ RUNTIME_JS = r"""
   function step(k) { pause(); var d = 1 / fps; show(Math.round(state.time / d + k) * d); emit("seek"); }
   function setSpeed(s) { state.speed = s; emit("speed", { speed: s }); }
   function setLoop(v) { state.loop = !!v; emit("loop-changed", { loop: state.loop }); }
+  function reverse() { state.direction = -state.direction; emit("reverse", { direction: state.direction }); }
+  function playRange(name) {
+    var r = spec.ranges && spec.ranges[name];
+    if (!r) return;
+    state.range = [r[0], r[1]]; state.direction = 1; state.loop = false; show(r[0]); play();
+  }
+
+  /* ---- declarative actions (data only) ---- */
+  function elementsOf(id) { return Array.prototype.slice.call(root.querySelectorAll('[data-kk-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]')); }
+  function setSelected(id, on) {
+    if (!id) return;
+    var was = !!selected[id];
+    if (on === was) return;
+    if (on) selected[id] = true; else delete selected[id];
+    elementsOf(id).forEach(function (el) { if (on) el.setAttribute("data-kk-selected", "true"); else el.removeAttribute("data-kk-selected"); el.setAttribute("aria-selected", on ? "true" : "false"); });
+    emit(on ? "select" : "deselect", { id: id });
+  }
+  function setProp(id, prop, value) {
+    if (!id) return;
+    if (data.dimension === 3) {
+      var div = document.getElementById("kk-plot"), idx = [];
+      (div.data || []).forEach(function (t, i) { if (t.meta && t.meta.id === id) idx.push(i); });
+      if (idx.length) { var u = {}; u[prop] = value; Plotly.restyle(div, u, idx); }
+    } else {
+      elementsOf(id).forEach(function (el) { if (prop === "opacity") el.style.opacity = String(value); else el.style.visibility = value ? "visible" : "hidden"; });
+    }
+  }
+  function run(a, eventId) {
+    var id = a.target || eventId;
+    switch (a.kind) {
+      case "play": play(); break;
+      case "pause": pause(); break;
+      case "toggle": state.playing ? pause() : play(); break;
+      case "reverse": reverse(); break;
+      case "seek": pause(); seek(typeof a.to === "string" ? data.markers[a.to] : a.to); break;
+      case "set-speed": setSpeed(a.speed); if (ui.speed) ui.speed.value = String(a.speed); break;
+      case "play-range": playRange(a.name); break;
+      case "select":
+        if (a.mode === "clear") Object.keys(selected).forEach(function (k) { setSelected(k, false); });
+        else if (a.mode === "select") setSelected(id, true);
+        else if (a.mode === "deselect") setSelected(id, false);
+        else setSelected(id, !selected[id]);
+        break;
+      case "set-property": setProp(id, a.property, a.value); break;
+      case "reset-camera": adapter.resetView(); break;
+    }
+  }
+  (spec.bindings || []).forEach(function (b) {
+    if (b.event !== "focus" || !b.target) return;
+    elementsOf(b.target).forEach(function (el) { if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0"); });
+  });
 
   if (ui.seek) { ui.seek.max = String(D); ui.seek.step = String(1 / fps); ui.seek.addEventListener("input", function () { pause(); seek(parseFloat(ui.seek.value)); }); }
   if (ui.play) ui.play.addEventListener("click", function () { state.playing ? pause() : play(); });
@@ -216,7 +297,9 @@ RUNTIME_JS = r"""
   window.kinetickit = {
     version: data.version, duration: D, data: data,
     play: play, pause: pause, seek: seek, step: step, setSpeed: setSpeed, setLoop: setLoop,
+    reverse: reverse, playRange: playRange, select: function (id, on) { setSelected(id, on !== false); },
     get time() { return state.time; }, get playing() { return state.playing; },
+    get direction() { return state.direction; }, get selection() { return Object.keys(selected); },
     on: function (type, fn) { (handlers[type] = handlers[type] || []).push(fn); },
     off: function (type, fn) { handlers[type] = (handlers[type] || []).filter(function (f) { return f !== fn; }); }
   };

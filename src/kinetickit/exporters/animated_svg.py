@@ -7,6 +7,7 @@ from typing import Any
 from kinetickit.animation import Animation
 from kinetickit.exporters.destination import Destination, as_destination
 from kinetickit.exporters.manifest import ExportManifest
+from kinetickit.interaction import Degradation, plan_interactions
 from kinetickit.renderers import get_renderer, requirements_for
 from kinetickit.renderers.capabilities import OUT_ANIMATED_DOCUMENT, OUT_VECTOR_DOCUMENT
 from kinetickit.renderers.vector import SvgSettings
@@ -29,6 +30,9 @@ class AnimatedSVGExporter:
         renderer = get_renderer("vector")
         outputs = (OUT_ANIMATED_DOCUMENT if animation.duration > 0 else OUT_VECTOR_DOCUMENT,)
         renderer.capabilities.validate(requirements_for(animation, outputs=outputs))
+        plan = plan_interactions(
+            animation.interactions, renderer.capabilities, Degradation(self.settings.degradation)
+        )
         document = renderer.render_document(animation, self.settings)  # type: ignore[attr-defined]
         dest: Destination = as_destination(target)
         data = document.to_bytes()
@@ -44,6 +48,8 @@ class AnimatedSVGExporter:
             bytes_written=len(data),
             description=self.settings.description,
             warnings=document.warnings,
+            preserved=plan.preserved,
+            degraded=plan.degraded,
             details={
                 "element_ids": document.element_ids,
                 "animations": document.animation_count,
