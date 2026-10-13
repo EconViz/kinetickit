@@ -29,13 +29,16 @@ class Timeline:
         registry: InterpolatorRegistry = DEFAULT_REGISTRY,
     ) -> None:
         self._registry = registry
-        self._base = dict(base)
+        self._base = base
 
         def pre(ref: PropertyRef[Any]) -> Any:
             try:
-                return self._base[ref]
+                value = self._base[ref]
             except KeyError:
                 raise ConfigurationError(f"no initial value for property {ref}") from None
+            if value is None:
+                raise ConfigurationError(f"property {ref} has no value to animate from")
+            return value
 
         compiled = motion._compile(pre, registry)
         grouped: dict[PropertyRef[Any], list[Segment]] = {}
