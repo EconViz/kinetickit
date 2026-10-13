@@ -1,0 +1,63 @@
+"""The scene + motion facade."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from typing import Any
+
+from kinetickit.animation.frame import Frame
+from kinetickit.errors import ConfigurationError
+from kinetickit.interpolation import DEFAULT_REGISTRY, InterpolatorRegistry
+from kinetickit.scene.scene import SceneBase
+from kinetickit.scheduler import FixedFPS, Scheduler
+from kinetickit.timeline import Hold, Motion, Timeline
+
+
+class Animation:
+    """An immutable pairing of a scene and a motion.
+
+    Construction validates that every animated property exists on the scene with the declared
+    type, and that an interpolator is available for it. Sampling never mutates the scene or
+    creates renderer state.
+    """
+
+    def __init__(
+        self,
+        scene: SceneBase,
+        motion: Motion | None = None,
+        *,
+        registry: InterpolatorRegistry = DEFAULT_REGISTRY,
+    ) -> None:
+        if not isinstance(scene, SceneBase):
+            raise ConfigurationError("Animation needs a Scene2D or Scene3D")
+        self.scene = scene
+        self.motion: Motion = motion if motion is not None else Hold(0.0)
+        self.registry = registry
+        self.timeline = Timeline(self.motion, scene.values(), registry)
+        for ref in self.timeline.properties:
+            node = scene.find(ref.node_id)
+            if node is None:
+                raise ConfigurationError(f"motion targets unknown node {ref.node_id!r}")
+            declared = node.animatable_properties().get(ref.path)
+            if declared is None:
+                raise ConfigurationError(f"{ref} is not an animatable property")
+            if declared is not ref.value_type:
+                raise ConfigurationError(
+                    f"{ref} was declared {ref.value_type.__name__} but the node declares "
+                    f"{declared.__name__}"
+                )
+
+    @property
+    def duration(self) -> float:
+        return self.timeline.duration
+
+    def sample(self, t: float) -> Any:
+        """The scene snapshot at time ``t`` (clamped to the final state past the end)."""
+        return self.scene.bind(self.timeline.sample(t))
+
+    def frames(self, schedule: int | Scheduler = 30) -> Iterator[Frame]:
+        """Lazily yield frames. Only the current frame is held."""
+        scheduler = FixedFPS(schedule) if isinstance(schedule, int) else schedule
+        d = self.duration
+        for i, t in enumerate(scheduler.times(d)):
+            yield Frame(i, t, (t / d) if d > 0 else 0.0, self.sample(t))
