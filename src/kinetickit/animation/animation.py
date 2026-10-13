@@ -34,6 +34,7 @@ class Animation:
         *,
         registry: InterpolatorRegistry = DEFAULT_REGISTRY,
         interactions: Any = None,
+        accessibility: Any = None,
     ) -> None:
         if not isinstance(scene, SceneBase):
             raise ConfigurationError("Animation needs a Scene2D or Scene3D")
@@ -42,6 +43,7 @@ class Animation:
         self.registry = registry
         self.timeline = Timeline(self.motion, scene.values(), registry)
         self.interactions = interactions
+        self.accessibility = accessibility
         if interactions is not None:
             interactions.validate(scene, self.timeline.markers, self.timeline.duration)
         for ref in self.timeline.properties:

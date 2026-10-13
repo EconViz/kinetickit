@@ -8,6 +8,7 @@ from typing import Any
 from xml.sax.saxutils import escape, quoteattr
 
 from kinetickit import __version__
+from kinetickit.accessibility import ReducedMotion, reading_order, semantic_report
 from kinetickit.animation import Animation
 from kinetickit.errors import CapabilityError, ConfigurationError
 from kinetickit.interaction import Degradation, PlaybackControls, plan_interactions
@@ -187,8 +188,11 @@ class InteractiveRenderer:
             body, data, warnings, deps, ids, head_scripts = self._two_d(animation, st)
         else:  # pragma: no cover - SceneBase subclasses only
             raise ConfigurationError("unsupported scene type")
-        title = st.title or "KineticKit animation"
-        label = st.description or title
+        info = animation.accessibility
+        title = st.title or (info.title if info else None) or "KineticKit animation"
+        description = st.description or (info.description if info else None)
+        label = description or title
+        rm = info.reduced_motion if info else ReducedMotion()
         markers = dict(animation.timeline.markers)
         data.update(
             {
@@ -202,6 +206,7 @@ class InteractiveRenderer:
                 "markers": markers,
                 "width": st.width,
                 "height": st.height,
+                "reducedTime": rm.representative_time(animation.duration),
             }
         )
         ctl = (
@@ -218,12 +223,17 @@ class InteractiveRenderer:
                 "bindings": [b.to_data() for b in plan.active],
                 "ranges": {k: list(v) for k, v in animation.interactions.ranges.items()},
             }
-        caption = (
-            f'<figcaption class="kk-sr">{escape(label)}</figcaption>' if st.description else ""
+        caption = f'<figcaption class="kk-sr">{escape(label)}</figcaption>' if description else ""
+        if info is not None and info.long_description:
+            caption += f'<div class="kk-sr" id="kk-long">{escape(info.long_description)}</div>'
+        caption += _object_list(animation)
+        caption += (
+            '<p class="kk-notice" data-kk="notice" hidden>Reduced motion is on: showing a '
+            "representative state. Press Play to run the animation.</p>"
         )
         html = (
             "<!doctype html>\n"
-            f'<html lang={quoteattr(st.lang)}>\n<head>\n<meta charset="utf-8">\n'
+            f'<html lang={quoteattr(info.lang if info else st.lang)}>\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             f"<title>{escape(title)}</title>\n<style>{RUNTIME_CSS}</style>\n</head>\n<body>\n"
             f'<figure class="kk-figure" id="kk-root" tabindex="-1" aria-label={quoteattr(label)}>\n'
@@ -231,6 +241,7 @@ class InteractiveRenderer:
             f'<script type="application/json" id="kk-data">{_json(data)}</script>\n'
             f"{head_scripts}<script>{RUNTIME_JS}</script>\n</body>\n</html>\n"
         )
+        kept, lost = semantic_report(animation, "html", st)
         return HtmlDocument(
             text=html,
             width=st.width,
@@ -240,8 +251,8 @@ class InteractiveRenderer:
             element_ids=ids,
             warnings=warnings,
             network_dependencies=deps,
-            preserved=plan.preserved,
-            degraded=plan.degraded,
+            preserved=plan.preserved + kept,
+            degraded=plan.degraded + lost,
         )
 
     # ------------------------------------------------------------------ 2D
@@ -257,6 +268,7 @@ class InteractiveRenderer:
             title=st.title,
             description=st.description,
             pretty=False,
+            reduced_motion=None,
         )
         doc = VectorRenderer().render_document(animation, svg_settings)
         doc.root.set("class", "kk-svg")
@@ -347,6 +359,18 @@ class InteractiveRenderer:
         }
         ids = {t["meta"]["id"]: t["meta"]["id"] for t in payload["traces"]}
         return body, data, warnings, deps, ids, scripts
+
+
+def _object_list(animation: Animation) -> str:
+    items = []
+    for n in reading_order(animation.scene):
+        sem = n.semantics
+        text = " — ".join(x for x in (sem.label, sem.description) if x) or n.id
+        role = f" ({escape(sem.role)})" if sem.role else ""
+        items.append(f"<li data-kk-ref={quoteattr(n.id)}>{escape(text)}{role}</li>")
+    if not items:
+        return ""
+    return '<ul class="kk-sr" aria-label="Objects in reading order">' + "".join(items) + "</ul>"
 
 
 def _walk(node: Any) -> Any:

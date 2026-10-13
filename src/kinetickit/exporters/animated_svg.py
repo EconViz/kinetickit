@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from kinetickit.accessibility import semantic_report
 from kinetickit.animation import Animation
 from kinetickit.exporters.destination import Destination, as_destination
 from kinetickit.exporters.manifest import ExportManifest
@@ -34,6 +35,7 @@ class AnimatedSVGExporter:
             animation.interactions, renderer.capabilities, Degradation(self.settings.degradation)
         )
         document = renderer.render_document(animation, self.settings)  # type: ignore[attr-defined]
+        sem_kept, sem_lost = semantic_report(animation, "svg", self.settings)
         dest: Destination = as_destination(target)
         data = document.to_bytes()
         with dest.open_binary() as out:
@@ -48,8 +50,8 @@ class AnimatedSVGExporter:
             bytes_written=len(data),
             description=self.settings.description,
             warnings=document.warnings,
-            preserved=plan.preserved,
-            degraded=plan.degraded,
+            preserved=plan.preserved + sem_kept,
+            degraded=plan.degraded + sem_lost,
             details={
                 "element_ids": document.element_ids,
                 "animations": document.animation_count,

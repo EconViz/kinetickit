@@ -17,6 +17,7 @@ RUNTIME_CSS = r"""
 .kk-markers{display:flex;flex-wrap:wrap;gap:.4rem}
 .kk-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .kk-fallback{max-width:60ch}
+.kk-notice{margin:.25rem 0;padding:.4rem .6rem;border-left:4px solid #0b6bcb;background:#eef5fd}
 svg.kk-svg [data-kk-selected="true"] path,svg.kk-svg path[data-kk-selected="true"]{stroke:#e4572e;stroke-width:3px;vector-effect:non-scaling-stroke}
 svg.kk-svg [data-kk-id]:focus-visible{outline:3px solid #0b6bcb;outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.kk-figure *{scroll-behavior:auto!important}}
@@ -304,7 +305,7 @@ RUNTIME_JS = r"""
     off: function (type, fn) { handlers[type] = (handlers[type] || []).filter(function (f) { return f !== fn; }); }
   };
 
-  if (reduce) { show(D); }
+  if (reduce) { show(data.reducedTime === undefined ? D : data.reducedTime); var note = q("[data-kk=notice]"); if (note) note.hidden = false; }
   else { show(0); if (data.autoplay) play(); }
   root.setAttribute("data-kk-ready", "true");
   emit("ready", { reducedMotion: reduce });
