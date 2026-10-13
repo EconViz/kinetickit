@@ -15,3 +15,4 @@ All notable changes are recorded here. The format follows
 - Neutral `TextAsset` contract and the `Animation` facade with lazy `frames()`.
 - Path normalization (`normalize_paths`, `PathMorph` overrides, diagnostics) and automatic `SceneTransition.between` keyed by stable ids, with enter/exit policies, cross-fade fallbacks and explicit track overrides; `Shape2D/PathNode2D.morph_to`.
 - `minimal` theme and `Stroke`/`Fill` helpers, whole-animation single-viewport layout (`resolve_layout`), and guides (axes, grid, legend, color bar, annotation) compiled to ordinary scene nodes.
+- Capability-driven renderer contracts (`RendererCapabilities`, `requirements_for`, renderer registry) that fail before any output, KineticKit-owned destinations (atomic files, bytes, streams), `ExportManifest`, and native Animated SVG export (SMIL, exact `keySplines` for linear and cubic-Bézier easing, sampled otherwise) via `Animation.save()` / `to_svg()`.

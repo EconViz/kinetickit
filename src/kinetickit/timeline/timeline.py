@@ -84,6 +84,14 @@ class Timeline:
         i = bisect_right(self._starts[ref], t) - 1
         return self._base[ref] if i < 0 else segs[i].value_at(t, self._registry)
 
+    def governing(self, ref: PropertyRef[Any], t: float) -> Segment | None:
+        """The segment that determines ``ref`` at time ``t`` (most recently started)."""
+        segs = self._segments.get(ref)
+        if not segs:
+            return None
+        i = bisect_right(self._starts[ref], t) - 1
+        return None if i < 0 else segs[i]
+
     def sample(self, t: float) -> dict[PropertyRef[Any], Any]:
         """Values of every animated property at time ``t``."""
         t = self._check(t)
