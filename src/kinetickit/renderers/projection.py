@@ -222,21 +222,7 @@ class _Projector:
             )
 
     def base_colors(self, node: Any, mesh: Any, faces: Any, tri: Array) -> tuple[Array, Array]:
-        n = len(faces)
-        if isinstance(node, Surface3D) and node.colorscale is not None:
-            z = tri[:, :, 2].mean(axis=1)
-            lo, hi = node.value_range or (
-                float(mesh.vertices[:, 2].min()),
-                float(mesh.vertices[:, 2].max()),
-            )
-            t = np.zeros(n) if hi <= lo else np.clip((z - lo) / (hi - lo), 0.0, 1.0)
-            rgba = np.array([node.colorscale.at(float(v)).as_tuple() for v in t])
-            return _arr(rgba[:, :3]), _arr(rgba[:, 3] * node.color.a)
-        if mesh.colors is not None:
-            c = mesh.colors[faces].mean(axis=1)
-            return _arr(c[:, :3]), _arr(c[:, 3] * node.color.a)
-        c = np.array(node.color.as_tuple())
-        return _arr(np.tile(c[:3], (n, 1))), _arr(np.full(n, c[3]))
+        return face_base_colors(node, mesh, faces, tri)
 
     def shade(self, material: Any, base: Array, normal: Array, to_eye: Array) -> Array:
         if self.lights:
@@ -271,6 +257,25 @@ class _Projector:
             + material.specular * spec[:, None]
         )
         return _arr(np.clip(out, 0.0, 1.0))
+
+
+def face_base_colors(node: Any, mesh: Any, faces: Any, tri: Array) -> tuple[Array, Array]:
+    """Unlit RGB and alpha per face: color scale, per-vertex colors, or the node color."""
+    n = len(faces)
+    if isinstance(node, Surface3D) and node.colorscale is not None:
+        z = tri[:, :, 2].mean(axis=1)
+        lo, hi = node.value_range or (
+            float(mesh.vertices[:, 2].min()),
+            float(mesh.vertices[:, 2].max()),
+        )
+        t = np.zeros(n) if hi <= lo else np.clip((z - lo) / (hi - lo), 0.0, 1.0)
+        rgba = np.array([node.colorscale.at(float(v)).as_tuple() for v in t])
+        return _arr(rgba[:, :3]), _arr(rgba[:, 3] * node.color.a)
+    if mesh.colors is not None:
+        c = mesh.colors[faces].mean(axis=1)
+        return _arr(c[:, :3]), _arr(c[:, 3] * node.color.a)
+    c = np.array(node.color.as_tuple())
+    return _arr(np.tile(c[:3], (n, 1))), _arr(np.full(n, c[3]))
 
 
 def _trim(points: Array, progress: float) -> Array:

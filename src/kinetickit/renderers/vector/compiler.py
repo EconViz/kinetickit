@@ -163,10 +163,7 @@ class SvgCompiler:
         return sid
 
     def base_attrs(self, node: Node, sid: str) -> dict[str, str]:
-        attrs: dict[str, str] = {"id": sid}
-        if sid != node.id:
-            attrs["data-kk-id"] = node.id
-        attrs["data-kk-kind"] = node.kind
+        attrs: dict[str, str] = {"id": sid, "data-kk-id": node.id, "data-kk-kind": node.kind}
         if node.opacity != 1.0:
             attrs["opacity"] = self.fmt(node.opacity)
         if not node.visible:

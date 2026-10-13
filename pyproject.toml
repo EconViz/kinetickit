@@ -137,13 +137,22 @@ source_modules = ["kinetickit.renderers"]
 forbidden_modules = ["kinetickit.exporters"]
 
 [[tool.importlinter.contracts]]
-name = "Renderer capabilities are independent"
-type = "independence"
-modules = [
-    "kinetickit.renderers.raster",
-    "kinetickit.renderers.vector",
-    "kinetickit.renderers.interactive",
-]
+name = "Vector rendering does not know raster or interactive"
+type = "forbidden"
+source_modules = ["kinetickit.renderers.vector"]
+forbidden_modules = ["kinetickit.renderers.raster", "kinetickit.renderers.interactive"]
+
+[[tool.importlinter.contracts]]
+name = "Raster rendering does not know vector or interactive"
+type = "forbidden"
+source_modules = ["kinetickit.renderers.raster"]
+forbidden_modules = ["kinetickit.renderers.vector", "kinetickit.renderers.interactive"]
+
+[[tool.importlinter.contracts]]
+name = "Interactive rendering does not know raster"
+type = "forbidden"
+source_modules = ["kinetickit.renderers.interactive"]
+forbidden_modules = ["kinetickit.renderers.raster"]
 
 [[tool.importlinter.contracts]]
 name = "Domain packages and optional backends stay out of the core"
