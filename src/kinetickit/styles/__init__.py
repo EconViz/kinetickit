@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from kinetickit.interpolation import Color
+from kinetickit.interpolation import DEFAULT_REGISTRY, Color
+from kinetickit.styles.material import ColorScale, Material, MaterialInterpolator
 from kinetickit.styles.style import Fill, Stroke
 from kinetickit.styles.theme import MinimalTheme, Theme
 
-__all__ = ["Color", "Fill", "MinimalTheme", "Stroke", "Theme"]
+DEFAULT_REGISTRY.register(Material, MaterialInterpolator())
+
+__all__ = ["Color", "ColorScale", "Fill", "Material", "MinimalTheme", "Stroke", "Theme"]

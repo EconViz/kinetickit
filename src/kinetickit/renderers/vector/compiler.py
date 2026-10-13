@@ -22,6 +22,7 @@ from kinetickit.errors import CapabilityError
 from kinetickit.geometry.two_d import Path2D, Transform2D, Vec2
 from kinetickit.interpolation import Color, StepInterpolator
 from kinetickit.layout import LayoutResult, Margins, Viewport, resolve_layout
+from kinetickit.renderers.vector.projected import ProjectedWorld
 from kinetickit.renderers.vector.svg import Element, num, svg_id
 from kinetickit.scene import (
     Camera2D,
@@ -30,7 +31,7 @@ from kinetickit.scene import (
     Node,
     PathNode2D,
     Point2D,
-    Scene2D,
+    Scene3D,
     Shape2D,
     Text2D,
 )
@@ -126,18 +127,17 @@ def _paint(attrs: dict[str, str], name: str, color: Color | None) -> None:
 
 class SvgCompiler:
     def __init__(self, animation: Animation, settings: SvgSettings) -> None:
-        if not isinstance(animation.scene, Scene2D):
-            raise CapabilityError(
-                "the vector renderer cannot yet draw 3D scenes", missing=("dimension:3d",)
-            )
+        self.is3d = isinstance(animation.scene, Scene3D)
         self.animation = animation
         self.settings = settings
         self.tl = animation.timeline
         self.D = animation.duration
         self.registry = animation.registry
         vp = Viewport(settings.width, settings.height, settings.margins)
-        self.layout = settings.layout or resolve_layout(animation, vp, padding=settings.padding)
-        self.snapshot: Scene2D = animation.sample(0.0)
+        self.layout: LayoutResult | None = None
+        if not self.is3d:
+            self.layout = settings.layout or resolve_layout(animation, vp, padding=settings.padding)
+        self.snapshot: Any = animation.sample(0.0)
         self.animated: set[PropertyRef[Any]] = set(self.tl.properties) if self.D > 0 else set()
         self.channels: list[Channel] = []
         self.ids: set[str] = set()
@@ -148,8 +148,7 @@ class SvgCompiler:
         self.consumed: set[PropertyRef[Any]] = set()
         self.count = 0
         cam = self.snapshot.camera
-        assert isinstance(cam, Camera2D)
-        self.s0 = self.layout.scale(cam)
+        self.s0 = self.layout.scale(cam) if self.layout is not None else 1.0
 
     # ---------------------------------------------------------------- helpers
     def fmt(self, v: float) -> str:
@@ -203,9 +202,10 @@ class SvgCompiler:
         return get
 
     def camera_scale(self, cam: Camera2D) -> float:
+        assert self.layout is not None
         return LayoutResultView(self.layout, cam).scale
 
-    def point_scale(self, node: Point2D, cam: Camera2D, overlay: bool) -> str:
+    def point_scale(self, node: Point2D, cam: Any, overlay: bool) -> str:
         k = node.size if overlay else node.size / self.camera_scale(cam)
         return f"{self.fmt(k)} {self.fmt(-k if overlay else k)}"
 
@@ -290,7 +290,6 @@ class SvgCompiler:
         _paint(sym_attrs, "fill", node.color)
         sym_attrs.update(self.stroke_attrs(node.stroke, node.stroke_width, None, "miter", ()))
         cam = self.snapshot.camera
-        assert isinstance(cam, Camera2D)
         sym_attrs["transform"] = f"scale({self.point_scale(node, cam, overlay)})"
         sym = g.add(Element("path", sym_attrs))
         self.common_channels(node, g)
@@ -713,6 +712,7 @@ class SvgCompiler:
         """The (outermost, innermost) elements of the world transform stack."""
         cam = self.snapshot.camera
         assert isinstance(cam, Camera2D)
+        assert self.layout is not None
         lay = self.layout
         if not any(r.node_id == cam.id for r in self.animated):
             m = lay.world_to_pixel(cam).m
@@ -784,12 +784,17 @@ class SvgCompiler:
             attrs = {"id": "background", "width": "100%", "height": "100%"}
             _paint(attrs, "fill", Color.parse(st.background))
             root.add(Element("rect", attrs))
-        top, inner = self.world_group()
-        root.add(top)
-        for node in self.ordered(self.snapshot.nodes):
-            el = self.emit(node, False)
-            if el is not None:
-                inner.add(el)
+        if self.is3d:
+            top = inner = Element("g", {"id": "world"})
+            ProjectedWorld(self).build(inner)
+            root.add(top)
+        else:
+            top, inner = self.world_group()
+            root.add(top)
+            for node in self.ordered(self.snapshot.nodes):
+                el = self.emit(node, False)
+                if el is not None:
+                    inner.add(el)
         overlay = Element("g", {"id": "overlay"})
         for node in self.ordered(self.snapshot.overlay):
             el = self.emit(node, True)
