@@ -13,6 +13,7 @@ from matplotlib.path import Path as MplPath
 
 from kinetickit.geometry.two_d import Matrix3, Path2D, Transform2D, Vec2
 from kinetickit.interpolation import Color
+from kinetickit.renderers.projection import Projected, project_scene
 from kinetickit.scene import (
     Camera2D,
     Group2D,
@@ -21,6 +22,7 @@ from kinetickit.scene import (
     PathNode2D,
     Point2D,
     Scene2D,
+    Scene3D,
     Shape2D,
     Text2D,
 )
@@ -250,6 +252,56 @@ class _Painter:
                     linewidth=0,
                 )
 
+    def projected(self, prim: Projected, order: int) -> None:
+        z = float(order)
+        if prim.kind == "polygon":
+            assert prim.fill is not None
+            kw: dict[str, Any] = {"facecolor": prim.fill}
+            if prim.stroke is not None:
+                kw.update(
+                    edgecolor=prim.stroke, linewidth=prim.stroke_width * _PT, joinstyle="round"
+                )
+            else:
+                # hairline in the face color hides antialiasing seams between neighbours
+                kw.update(edgecolor=prim.fill, linewidth=0.4 * _PT)
+            pts = [tuple(p) for p in prim.points]
+            self.patch(
+                MplPath(np.array(pts + [pts[0]]), [_MOVE] + [_LINE] * (len(pts) - 1) + [_CLOSE]),
+                z,
+                None,
+                **kw,
+            )
+        elif prim.kind == "polyline":
+            assert prim.stroke is not None
+            pts = [tuple(p) for p in prim.points]
+            kw = {
+                "fill": False,
+                "edgecolor": prim.stroke,
+                "linewidth": prim.stroke_width * _PT,
+                "capstyle": "round",
+                "joinstyle": "round",
+            }
+            if prim.dash:
+                kw["linestyle"] = (
+                    0,
+                    [d * _PT / max(prim.stroke_width * _PT, 1e-9) for d in prim.dash],
+                )
+            self.patch(MplPath(np.array(pts), [_MOVE] + [_LINE] * (len(pts) - 1)), z, None, **kw)
+        else:
+            assert prim.fill is not None
+            cx, cy = prim.points[0]
+            pm = Matrix3.translation(Vec2(float(cx), float(cy))) @ Matrix3.scaling(
+                Vec2(prim.size, -prim.size)
+            )
+            self.patch(
+                _mpl_path(SYMBOL_PATHS[prim.symbol], pm),
+                z,
+                None,
+                facecolor=prim.fill,
+                edgecolor="none",
+                linewidth=0,
+            )
+
     def point(self, node: Point2D, m: Matrix3, op: float, clip: Any, overlay: bool) -> None:
         center = m.apply(node.position)
         k = node.size
@@ -265,7 +317,9 @@ class _Painter:
         self.patch(_mpl_path(SYMBOL_PATHS[node.symbol], pm), node.z, clip, **kw)
 
 
-def render_snapshot(snapshot: Scene2D, layout: Any, size: Any, settings: Any) -> np.ndarray:
+def render_snapshot(
+    snapshot: Scene2D | Scene3D, layout: Any, size: Any, settings: Any
+) -> np.ndarray:
     """Render one snapshot to an RGBA ``uint8`` array of ``(pixel_height, pixel_width, 4)``."""
     fig = Figure(
         figsize=(size.logical_width / 96.0, size.logical_height / 96.0),
@@ -279,11 +333,16 @@ def render_snapshot(snapshot: Scene2D, layout: Any, size: Any, settings: Any) ->
         ax.set_ylim(size.logical_height, 0.0)
         ax.set_axis_off()
         painter = _Painter(ax, settings.antialias, 1.0)
-        cam = snapshot.camera
-        assert isinstance(cam, Camera2D)
-        world = layout.world_to_pixel(cam)
-        for _, node in sorted(enumerate(snapshot.nodes), key=lambda p: (p[1].z, p[0])):
-            painter.node(node, world, 1.0, None, False)
+        if isinstance(snapshot, Scene3D):
+            prims = project_scene(snapshot, size.logical_width, size.logical_height)
+            for i, prim in enumerate(prims):
+                painter.projected(prim, i)
+        else:
+            cam = snapshot.camera
+            assert isinstance(cam, Camera2D)
+            world = layout.world_to_pixel(cam)
+            for _, node in sorted(enumerate(snapshot.nodes), key=lambda p: (p[1].z, p[0])):
+                painter.node(node, world, 1.0, None, False)
         for _, node in sorted(enumerate(snapshot.overlay), key=lambda p: (p[1].z, p[0])):
             painter.node(node, Matrix3.identity(), 1.0, None, True)
         canvas.draw()
