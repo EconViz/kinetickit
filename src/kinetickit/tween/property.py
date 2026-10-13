@@ -8,7 +8,7 @@ from kinetickit.easing import Easing, linear
 from kinetickit.interpolation import Extrapolation
 from kinetickit.keyframes.keyframe import Keyframe, Keyframes
 from kinetickit.timeline.property import PropertyRef
-from kinetickit.tween.tween import Tween
+from kinetickit.tween.tween import NO_VALUE, Tween
 
 
 class PropertyBuilder:
@@ -33,7 +33,7 @@ class PropertyBuilder:
             self.ref.coerce(value),
             duration,
             easing,
-            None if from_ is None else self.ref.coerce(from_),
+            NO_VALUE if from_ is None else self.ref.coerce(from_),
             extrapolation,
         )
 

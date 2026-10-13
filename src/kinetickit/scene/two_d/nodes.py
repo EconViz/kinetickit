@@ -10,11 +10,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from kinetickit.easing import Easing, linear
 from kinetickit.errors import ConfigurationError
 from kinetickit.geometry.two_d import Bounds2D, Matrix3, Path2D, Transform2D, Vec2
 from kinetickit.interpolation import Color
+from kinetickit.morph import PathMorph, normalize_paths
 from kinetickit.scene.node import Node, prop
 from kinetickit.scene.scene import SceneBase
+from kinetickit.timeline import Motion
+from kinetickit.tween import Tween
 from kinetickit.typography import TextAssetLike
 
 SYMBOLS = ("circle", "square", "diamond", "triangle", "cross", "plus")
@@ -38,6 +42,25 @@ def _nonneg(node: Node, name: str) -> None:
 def _check_dash(node: Node, dash: tuple[float, ...]) -> None:
     if any(d < 0 for d in dash) or (dash and sum(dash) == 0):
         raise ConfigurationError(f"{node.id}.dash must be non-negative with a positive total")
+
+
+def _morph_to(
+    node: Node,
+    target: Any,
+    duration: float,
+    easing: Easing,
+    morph: PathMorph | None,
+) -> Motion:
+    """Morph ``node.path`` to ``target`` or fail loudly; never fall back silently."""
+    end = Path2D.coerce(target)
+    pair = normalize_paths(getattr(node, "path"), end, morph)
+    if not pair.compatible:
+        reasons = "; ".join(d.message for d in pair.diagnostics)
+        raise ConfigurationError(
+            f"cannot morph {node.id}.path automatically ({reasons}). Pass a PathMorph with an "
+            "explicit normalizer, or cross-fade with a SceneTransition."
+        )
+    return Tween(node.ref("path"), pair.end, duration, easing, pair.start)
 
 
 def _union(boxes: list[Bounds2D | None]) -> Bounds2D | None:
@@ -115,6 +138,17 @@ class PathNode2D(_Stroked):
     def bounds(self) -> Bounds2D | None:
         return self.path.bounds()
 
+    def morph_to(
+        self,
+        target: Any,
+        *,
+        duration: float,
+        easing: Easing = linear,
+        morph: PathMorph | None = None,
+    ) -> Motion:
+        """Morph this node's path to ``target``; ``morph`` overrides every automatic choice."""
+        return _morph_to(self, target, duration, easing, morph)
+
     @classmethod
     def polyline(cls, id: str, points: Any, *, closed: bool = False, **style: Any) -> PathNode2D:
         return cls(id=id, path=Path2D.polyline(points, closed=closed), **style)
@@ -141,6 +175,17 @@ class Shape2D(Node2D):
 
     def bounds(self) -> Bounds2D | None:
         return self.path.bounds()
+
+    def morph_to(
+        self,
+        target: Any,
+        *,
+        duration: float,
+        easing: Easing = linear,
+        morph: PathMorph | None = None,
+    ) -> Motion:
+        """Morph this node's path to ``target``; ``morph`` overrides every automatic choice."""
+        return _morph_to(self, target, duration, easing, morph)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
