@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass, fields
+from itertools import chain
 from typing import Any
 
 from kinetickit import __version__
@@ -21,6 +23,70 @@ from kinetickit.renderers.raster import RasterRenderer, RasterSettings
 from kinetickit.scheduler import FixedFPS, Scheduler, Timestamps
 
 MIN_DELAY_CS = 1
+
+
+def export_png_frames(
+    frames: Iterable[bytes],
+    target: Any,
+    *,
+    fps: int = 30,
+    loop: int | None = 0,
+    colors: int = 256,
+    dither: str = "none",
+    palette: str = "adaptive",
+    disposal: int = 2,
+) -> ExportManifest:
+    """Stream encoded PNG frames into a GIF without owning the producer's scene model."""
+    if isinstance(fps, bool) or not isinstance(fps, int) or not 1 <= fps <= 100:
+        raise ConfigurationError("fps must be an integer between 1 and 100")
+
+    from kinetickit.exporters._gif_stream import GifStreamWriter, decode_png
+
+    iterator = iter(frames)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        raise ConfigurationError("at least one PNG frame is required") from None
+
+    first_pixels = decode_png(first)
+    height, width = first_pixels.shape[:2]
+    destination = as_destination(target)
+    count = 0
+    delays: list[int] = []
+    written = 0
+    with destination.open_binary() as output:
+        counter = _Counting(output)
+        writer = GifStreamWriter(
+            counter,  # type: ignore[arg-type]
+            width,
+            height,
+            loop=loop,
+            colors=colors,
+            dither=dither,
+            palette=palette,
+            disposal=disposal,
+        )
+        for frame in chain((first_pixels,), (decode_png(data) for data in iterator)):
+            delay = max(
+                MIN_DELAY_CS,
+                round((count + 1) * 100 / fps) - round(count * 100 / fps),
+            )
+            writer.add_frame(frame, delay)
+            delays.append(delay)
+            count += 1
+        writer.close()
+        written = counter.count
+    return ExportManifest(
+        format="gif",
+        renderer="external-raster-frames",
+        destination=destination.description,
+        width=width,
+        height=height,
+        duration=sum(delays) / 100,
+        frames=count,
+        bytes_written=written,
+        details={"delays_cs": tuple(delays), "fps": fps},
+    )
 
 
 @dataclass(frozen=True)
