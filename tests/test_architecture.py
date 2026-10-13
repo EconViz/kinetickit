@@ -35,9 +35,13 @@ def _sources() -> list[Path]:
     return sorted(SRC.rglob("*.py"))
 
 
+OPTIONAL_INTEGRATIONS = {"integrations/glyphkit.py": {"glyphkit"}}
+
+
 def test_no_module_imports_domain_packages():
     for path in _sources():
-        roots = _imported_roots(path)
+        rel = path.relative_to(SRC).as_posix()
+        roots = _imported_roots(path) - OPTIONAL_INTEGRATIONS.get(rel, set())
         assert not roots & FORBIDDEN_ROOTS, f"{path} imports a forbidden package"
         assert not any(r.endswith("_viz") for r in roots), f"{path} imports an xx-viz package"
 

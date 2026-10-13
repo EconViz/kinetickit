@@ -40,7 +40,7 @@ def test_axis_compiles_to_ordinary_nodes_with_stable_ids():
 
 def test_axis_labels_need_a_text_factory_and_scale_to_world_units():
     lay = layout()
-    axis = Axis2D("y", "y", (0, 5), tick_count=5).compile(lay, text=fake_text)
+    axis = Axis2D("y", "y", (0, 5), tick_count=5).compile(lay, text=fake_text, labels=True)
     labels = [c for c in axis.children if "label" in c.id]
     assert len(labels) == 6
     assert labels[0].scale == pytest.approx(1.0 / lay.scale())
