@@ -10,7 +10,6 @@ from kinetickit import __version__
 from kinetickit.accessibility import ReducedMotion, semantic_report
 from kinetickit.animation import Animation
 from kinetickit.errors import ConfigurationError
-from kinetickit.exporters._gif_stream import GifStreamWriter, encode_png
 from kinetickit.exporters.cost import estimate_cost, warn_if_expensive
 from kinetickit.exporters.destination import Destination, FileDestination, as_destination
 from kinetickit.exporters.manifest import ExportManifest
@@ -110,7 +109,9 @@ class GIFExporter:
         return times, frame_delays(times, animation.duration, uniform=uniform)
 
     def export(self, animation: Animation, target: Any) -> ExportManifest:
-        renderer = get_renderer("raster")
+        renderer = get_renderer("raster")  # raises CapabilityError with an install hint if absent
+        from kinetickit.exporters._gif_stream import GifStreamWriter, encode_png
+
         renderer.capabilities.validate(requirements_for(animation, outputs=(OUT_RASTER_FRAME,)))
         assert isinstance(renderer, RasterRenderer)
         plan = plan_interactions(

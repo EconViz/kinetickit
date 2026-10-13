@@ -169,7 +169,7 @@ def test_capability_failure_writes_nothing(tmp_path):
 
 def test_a_failed_encode_leaves_no_file(tmp_path, monkeypatch):
     out = tmp_path / "bad.gif"
-    import kinetickit.exporters.gif as gif_module
+    import kinetickit.exporters._gif_stream as gif_module
 
     def boom(self, rgba, delay_cs):
         raise RuntimeError("encoder exploded")

@@ -48,3 +48,30 @@ def test_core_imports_without_optional_backends():
     )
     result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_base_install_exports_svg_and_explains_missing_extras():
+    """Without Matplotlib, Pillow or Plotly the vector path works and the rest fail helpfully."""
+    code = textwrap.dedent(
+        """
+        import sys
+        for name in ("matplotlib", "plotly", "PIL", "mosaickit", "bezierkit", "glyphkit"):
+            sys.modules[name] = None
+        from kinetickit import Animation, Bounds2D, CapabilityError, Point2D, Scene2D, Vec2
+        import kinetickit.exporters, kinetickit.renderers, kinetickit.conformance
+        d = Point2D(id="d")
+        s = Scene2D(d)
+        s = s.bind({s.camera.ref("view"): Bounds2D(Vec2(0, 0), Vec2(10, 10))})
+        a = Animation(s, d.animate.position.to(Vec2(5, 5), duration=1.0))
+        assert "<animateTransform" in a.to_svg()
+        for fmt, extra in (("gif", "raster"), ("html", "interactive")):
+            try:
+                a.to_bytes(fmt)
+            except CapabilityError as exc:
+                assert extra in str(exc), str(exc)
+            else:
+                raise SystemExit("expected CapabilityError for " + fmt)
+        """
+    )
+    result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr + result.stdout
