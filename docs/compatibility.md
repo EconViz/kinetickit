@@ -4,9 +4,10 @@
 
 - Python 3.10, 3.11, 3.12 and 3.13 (`requires-python = ">=3.10,<3.14"`).
 - CI targets Linux, macOS and Windows.
-- Core and vector output need only NumPy. `raster` and `interactive` are optional extras; their
+- Base installations include NumPy and GlyphKit. `raster` and `interactive` are optional extras; their
   third-party engines are private implementation details and may be replaced without a breaking
-  change. GlyphKit is optional and installed separately.
+  change. GlyphKit handles font processing through the typography integration boundary and
+  is not loaded by core imports.
 
 ## Stable surfaces (1.0)
 

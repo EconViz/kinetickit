@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import textwrap
-from importlib.metadata import metadata
+from importlib.metadata import metadata, requires
 
 import kinetickit
 from kinetickit import errors
@@ -34,6 +34,40 @@ def test_error_hierarchy():
 def test_optional_extras_are_declared():
     extras = set(metadata("kinetickit").get_all("Provides-Extra") or ())
     assert {"raster", "interactive", "studio"} <= extras
+
+
+def test_glyphkit_is_a_required_distribution_dependency():
+    from packaging.requirements import Requirement
+    from packaging.specifiers import SpecifierSet
+    from packaging.utils import canonicalize_name
+
+    dependencies = [
+        Requirement(requirement)
+        for requirement in requires("kinetickit") or ()
+        if canonicalize_name(Requirement(requirement).name) == "glyphkit"
+    ]
+    assert len(dependencies) == 1
+    dependency = dependencies[0]
+    assert dependency.specifier == SpecifierSet(">=1.0.0b2,<2")
+    assert dependency.marker is None
+    assert dependency.url is None
+    assert not dependency.extras
+
+
+def test_core_imports_do_not_load_glyphkit():
+    code = textwrap.dedent(
+        """
+        import sys
+        import kinetickit
+        import kinetickit.easing, kinetickit.interpolation, kinetickit.tween
+        import kinetickit.keyframes, kinetickit.timeline
+        import kinetickit.geometry, kinetickit.scene, kinetickit.typography
+        import kinetickit.renderers.vector, kinetickit.exporters
+        assert not any(name.split('.')[0] == 'glyphkit' for name in sys.modules)
+        """
+    )
+    result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
 
 
 def test_core_imports_without_optional_backends():

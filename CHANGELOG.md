@@ -4,6 +4,11 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project follows
 [Semantic Versioning](https://semver.org/) from 1.0.
 
+## Unreleased
+
+### Changed
+- GlyphKit (`>=1.0.0b2,<2`) is now installed with KineticKit and owns all font processing. The `kinetickit.integrations.glyphkit` adapter remains the only import boundary; core imports stay lazy and neutral text contracts are unchanged.
+
 ## 1.0.0b1 — 2026-10-13
 
 First 1.0 beta: the motion, scene, renderer, exporter and artifact contracts listed in
@@ -20,7 +25,7 @@ First 1.0 beta: the motion, scene, renderer, exporter and artifact contracts lis
 - `minimal` theme and `Stroke`/`Fill` helpers, whole-animation single-viewport layout (`resolve_layout`), and guides (axes, grid, legend, color bar, annotation) compiled to ordinary scene nodes.
 - Capability-driven renderer contracts (`RendererCapabilities`, `requirements_for`, renderer registry) that fail before any output, KineticKit-owned destinations (atomic files, bytes, streams), `ExportManifest`, and native Animated SVG export (SMIL, exact `keySplines` for linear and cubic-Bézier easing, sampled otherwise) via `Animation.save()` / `to_svg()`.
 - `raster` renderer (private Matplotlib adapter, logical size / physical size / pixels, DPI up to 1200) and a truly streaming GIF exporter (palette, dithering, looping, disposal, error-spread frame timing, deterministic metadata, cost warnings).
-- `TypographyEngine` port, `TypographyUnavailableError` (guides that need text fail instead of guessing), and the optional `kinetickit.integrations.glyphkit` adapter (GlyphKit layouts, math and permission-checked font subsets → neutral `TextAsset`). GlyphKit is not a dependency of KineticKit and never imports it.
+- `TypographyEngine` port, `TypographyUnavailableError` (guides that need text fail instead of guessing), and the `kinetickit.integrations.glyphkit` adapter (GlyphKit layouts, math and permission-checked font subsets → neutral `TextAsset`). GlyphKit never imports KineticKit.
 - 3D: `Vec3`, `Quaternion` (w, x, y, z; shortest-arc slerp), `Matrix4`, `Transform3D`, immutable `MeshData`/`SurfaceGrid`/`Vec3Array`, `Material`/`ColorScale`, scene nodes (`Point3D`, `PointCloud3D`, `Line3D`, `Polyline3D`, `Mesh3D`, `Surface3D`, `Group3D`, `DirectionalLight3D`, `Camera3D`, `Scene3D`) with perspective and orthographic cameras, and a shared deterministic projection used by the raster (GIF) and vector (projected SVG) outputs.
 - 3D morphing: mesh/surface/point-list normalizers with explicit correspondence (`MeshMorph`, `SurfaceMorph`, bilinear `resample_grid`), topology and degeneracy diagnostics, `Mesh3D.morph_to`/`Surface3D.morph_to`, and 3D scene transitions (compatible meshes interpolate; mismatches cross-fade with diagnostics; camera pose, fov and clipping animate with the shared easing/keyframes).
 - `interactive` renderer and self-contained HTML export: 2D embeds the native Animated SVG driven by a dependency-free player (play/pause/seek/step/speed/loop/markers, keyboard operable, pan/zoom, hover/click events, reduced-motion aware); 3D uses a private plotting runtime with pre-sampled frames and native camera interaction. `offline` packaging has no network dependency; `compact` declares its CDN reference in the manifest.
@@ -36,5 +41,4 @@ First 1.0 beta: the motion, scene, renderer, exporter and artifact contracts lis
 ### Known limitations
 - Projected 3D vector output samples the animation and fixes painter's order at `t = 0`; it refuses animations whose projected primitives enter or leave the view.
 - Interactive 3D is pre-sampled; `drag`, implicit surfaces, 3D text and animated overlays on 3D scenes are not supported.
-- GlyphKit is an optional, separately installed integration and is not declared as an extra until it is published.
 - The GitHub Actions matrix has not been observed green yet (jobs were not started because of an account billing problem); all gates were run locally on Python 3.10, 3.12 and 3.13.

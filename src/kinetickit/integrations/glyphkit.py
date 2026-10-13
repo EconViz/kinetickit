@@ -1,7 +1,7 @@
 """Adapter from GlyphKit layouts to KineticKit text assets.
 
-Requires GlyphKit to be installed separately (it is intentionally not a KineticKit dependency
-or extra). GlyphKit owns font loading, shaping,
+GlyphKit is installed with KineticKit and imported only at this integration boundary.
+GlyphKit owns font loading, matching, shaping,
 layout, outlines and subsets; this module only translates its public, immutable data into a
 neutral :class:`~kinetickit.typography.TextAsset`. GlyphKit never imports KineticKit, and
 KineticKit core never imports GlyphKit.

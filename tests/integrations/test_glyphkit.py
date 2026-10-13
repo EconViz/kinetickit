@@ -7,26 +7,23 @@ import textwrap
 from io import BytesIO
 from pathlib import Path
 
+import glyphkit
 import pytest
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+from glyphkit import FontLibrary, FontSource
 
-glyphkit = pytest.importorskip("glyphkit")
-fontbuilder = pytest.importorskip("fontTools.fontBuilder")
-
-from fontTools.fontBuilder import FontBuilder  # noqa: E402
-from fontTools.pens.ttGlyphPen import TTGlyphPen  # noqa: E402
-from glyphkit import FontLibrary, FontSource  # noqa: E402
-
-from kinetickit.animation import Animation  # noqa: E402
-from kinetickit.errors import ConfigurationError  # noqa: E402
-from kinetickit.geometry.two_d import Bounds2D  # noqa: E402
-from kinetickit.guides import Axis2D  # noqa: E402
-from kinetickit.integrations.glyphkit import (  # noqa: E402
+from kinetickit.animation import Animation
+from kinetickit.errors import ConfigurationError
+from kinetickit.geometry.two_d import Bounds2D
+from kinetickit.guides import Axis2D
+from kinetickit.integrations.glyphkit import (
     GlyphKitTypography,
     text_asset_from_layout,
 )
-from kinetickit.layout import Viewport, resolve_layout  # noqa: E402
-from kinetickit.scene import Point2D, Scene2D, Text2D  # noqa: E402
-from kinetickit.typography import TextAssetLike, TypographyEngine  # noqa: E402
+from kinetickit.layout import Viewport, resolve_layout
+from kinetickit.scene import Point2D, Scene2D, Text2D
+from kinetickit.typography import TextAssetLike, TypographyEngine
 
 
 def make_font(family="KK Test", fs_type=0) -> bytes:

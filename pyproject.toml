@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-dependencies = ["numpy>=1.24"]
+dependencies = ["glyphkit>=1.0.0b2,<2", "numpy>=1.24"]
 keywords = ["animation", "svg", "gif", "3d", "morphing", "timeline", "accessibility"]
 
 [project.urls]

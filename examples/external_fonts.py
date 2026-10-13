@@ -1,6 +1,6 @@
 """Caller-provided fonts: GlyphKit lays text out, KineticKit animates and embeds it.
 
-Requires the optional GlyphKit package. Pass your own font bytes via ``font_bytes``.
+GlyphKit is installed with KineticKit. Pass your own font bytes via ``font_bytes``.
 """
 
 from __future__ import annotations
@@ -12,7 +12,9 @@ from kinetickit.geometry.two_d import Bounds2D, Vec2
 from kinetickit.scene import Scene2D, Text2D
 
 
-def main(out: Path, font_bytes: bytes | None = None) -> dict[str, Path]:
+def main(
+    out: Path, font_bytes: bytes | None = None, *, include_interactive: bool = False
+) -> dict[str, Path]:
     from glyphkit import FontLibrary, FontSource
 
     from kinetickit.integrations.glyphkit import GlyphKitTypography
@@ -28,9 +30,11 @@ def main(out: Path, font_bytes: bytes | None = None) -> dict[str, Path]:
     scene = Scene2D(title)
     scene = scene.bind({scene.camera.ref("view"): Bounds2D(Vec2(0, 0), Vec2(10, 6))})
     animation = Animation(scene, title.animate.position.to(Vec2(4, 3), duration=1.5))
-    files = {"svg": out / "text.svg", "html": out / "text.html"}
+    files = {"svg": out / "text.svg"}
     animation.save(files["svg"], width=480, height=290)
-    animation.save(files["html"], width=480, height=330)
+    if include_interactive:
+        files["html"] = out / "text.html"
+        animation.save(files["html"], width=480, height=330)
     return files
 
 
