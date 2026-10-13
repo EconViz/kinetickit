@@ -38,10 +38,13 @@ class Node:
     opacity: float = prop(1.0, float)
     z: float = prop(0.0, float)
     visible: bool = prop(True, bool)
+    semantics: Any = field(default=None)
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str) or not self.id:
             raise ConfigurationError("a node id must be a non-empty string")
+        if self.semantics is not None and type(self.semantics).__name__ != "Semantics":
+            raise ConfigurationError(f"{self.id}.semantics must be a Semantics value")
         for f in fields(self):
             declared = f.metadata.get("type")
             if declared is None:

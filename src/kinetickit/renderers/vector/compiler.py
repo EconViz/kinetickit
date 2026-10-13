@@ -16,6 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from kinetickit.accessibility import ReducedMotion
 from kinetickit.animation import Animation
 from kinetickit.easing import CubicBezier, linear, step
 from kinetickit.errors import CapabilityError
@@ -70,6 +71,9 @@ class SvgSettings:
     embed_fonts: bool = True
     layout: LayoutResult | None = None
     degradation: str = "drop"
+    reduced_motion: Any = (
+        "auto"  # "auto": the animation's policy; None disables; or a ReducedMotion
+    )
 
 
 @dataclass(frozen=True)
@@ -687,7 +691,34 @@ class SvgCompiler:
                 )
         return [n for _, n in sorted(enumerate(nodes), key=lambda p: (p[1].z, p[0]))]
 
+    def apply_semantics(self, node: Node, el: Element) -> None:
+        sem = node.semantics
+        if sem is None or sem.is_empty:
+            return
+        if sem.hidden:
+            el.set("aria-hidden", "true")
+            el.set("role", "presentation")
+            return
+        if sem.role:
+            el.set("role", sem.role)
+        if sem.label:
+            el.set("aria-label", sem.label)
+        if sem.reading_order is not None:
+            el.set("data-kk-order", str(sem.reading_order))
+        extra: list[Element] = []
+        if sem.label:
+            extra.append(Element("title", text=sem.label))
+        if sem.description:
+            extra.append(Element("desc", text=sem.description))
+        el.children[0:0] = extra
+
     def emit(self, node: Node, overlay: bool) -> Element | None:
+        el = self._emit(node, overlay)
+        if el is not None:
+            self.apply_semantics(node, el)
+        return el
+
+    def _emit(self, node: Node, overlay: bool) -> Element | None:
         if isinstance(node, Point2D):
             return self.emit_point(node, overlay)
         if isinstance(node, Line2D):
@@ -769,13 +800,18 @@ class SvgCompiler:
                 "role": "img",
             },
         )
-        if st.title:
+        info = self.animation.accessibility
+        title = st.title or (info.title if info else None)
+        description = st.description or (info.description if info else None)
+        if info is not None:
+            root.set("lang", info.lang)
+        if title:
             title_id = svg_id("kk-title", self.ids)
-            root.add(Element("title", {"id": title_id}, text=st.title))
+            root.add(Element("title", {"id": title_id}, text=title))
             root.set("aria-labelledby", title_id)
-        if st.description:
+        if description:
             desc_id = svg_id("kk-desc", self.ids)
-            root.add(Element("desc", {"id": desc_id}, text=st.description))
+            root.add(Element("desc", {"id": desc_id}, text=description))
             root.set("aria-describedby", desc_id)
         defs_index = len(root.children)
         if st.background is not None:
@@ -814,6 +850,17 @@ class SvgCompiler:
             )
         if self.defs.children:
             root.children.insert(defs_index, self.defs)
+        rm = st.reduced_motion
+        if rm == "auto":
+            rm = info.reduced_motion if info else ReducedMotion()
+        if rm is not None and self.D > 0 and self.count > 0:
+            rep = rm.representative_time(self.D)
+            js = (
+                "(function(){var s=document.currentScript.ownerSVGElement;"
+                'if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches'
+                f"&&s.pauseAnimations){{s.pauseAnimations();s.setCurrentTime({rep:.6g});}}}})();"
+            )
+            root.add(Element("script", {"type": "application/ecmascript"}, text=js))
         text = '<?xml version="1.0" encoding="UTF-8"?>\n' + root.serialize(2 if st.pretty else None)
         return SvgDocument(
             root=root,

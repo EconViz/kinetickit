@@ -7,11 +7,12 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 from kinetickit import __version__
+from kinetickit.accessibility import ReducedMotion, semantic_report
 from kinetickit.animation import Animation
 from kinetickit.errors import ConfigurationError
-from kinetickit.exporters._gif_stream import GifStreamWriter
+from kinetickit.exporters._gif_stream import GifStreamWriter, encode_png
 from kinetickit.exporters.cost import estimate_cost, warn_if_expensive
-from kinetickit.exporters.destination import Destination, as_destination
+from kinetickit.exporters.destination import Destination, FileDestination, as_destination
 from kinetickit.exporters.manifest import ExportManifest
 from kinetickit.interaction import Degradation, plan_interactions
 from kinetickit.interpolation import Color
@@ -40,6 +41,10 @@ class GifSettings:
     disposal: int = 1
     metadata: bool = True
     degradation: str = "drop"
+    accessibility: bool = False
+    description: str | None = None
+    companion_png: Any = None
+    companion_json: Any = None
 
     def scheduler(self) -> Scheduler:
         return Timestamps(self.timestamps) if self.timestamps is not None else FixedFPS(self.fps)
@@ -111,6 +116,17 @@ class GIFExporter:
         plan = plan_interactions(
             animation.interactions, renderer.capabilities, Degradation(self.gif.degradation)
         )
+        info = animation.accessibility
+        text = self.gif.description or (info.text_alternative if info else None)
+        if self.gif.accessibility and not text:
+            raise ConfigurationError(
+                "accessible GIF output needs a description: pass description=... "
+                "(GIF cannot carry alt text, so it is returned in the manifest)"
+            )
+        want_frame = self.gif.accessibility or self.gif.companion_png is not None
+        rep_time = (info.reduced_motion if info else ReducedMotion()).representative_time(
+            animation.duration
+        )
         size = self.raster.resolve()
         times, delays = self.plan(animation)
         estimate = estimate_cost(size, len(times))
@@ -135,6 +151,8 @@ class GIFExporter:
             ).encode()
         dest: Destination = as_destination(target)
         written = 0
+        rep_pixels = None
+        rep_index = min(range(len(times)), key=lambda i: abs(times[i] - rep_time))
         with dest.open_binary() as out:
             counter = _Counting(out)
             writer = GifStreamWriter(
@@ -152,9 +170,27 @@ class GIFExporter:
             for t, delay in zip(times, delays, strict=True):
                 frame = renderer.render_frame(animation.sample(t), layout, self.raster)
                 writer.add_frame(frame.pixels, delay)
+                if want_frame and len(delays) and times.index(t) == rep_index:
+                    rep_pixels = frame.pixels  # the single extra frame kept for the image
                 del frame  # one frame at a time
             writer.close()
             written = counter.count
+        png = encode_png(rep_pixels, background) if rep_pixels is not None else None
+        if png is not None and self.gif.companion_png is not None:
+            with FileDestination(self.gif.companion_png).open_binary() as f:
+                f.write(png)
+        if self.gif.companion_json is not None:
+            meta = {
+                "description": text,
+                "width": size.pixel_width,
+                "height": size.pixel_height,
+                "duration": sum(delays) / 100.0,
+                "frames": len(times),
+                "generator": f"kinetickit {__version__}",
+            }
+            with FileDestination(self.gif.companion_json).open_binary() as f:
+                f.write(json.dumps(meta, sort_keys=True, indent=2).encode("utf-8"))
+        kept, lost = semantic_report(animation, "gif", self.gif)
         return ExportManifest(
             format="gif",
             renderer="raster",
@@ -165,8 +201,10 @@ class GIFExporter:
             frames=len(times),
             bytes_written=written,
             warnings=(estimate.message(),) if estimate.expensive else (),
-            preserved=plan.preserved,
-            degraded=plan.degraded,
+            description=text if self.gif.accessibility or self.gif.description else None,
+            representative_frame=png,
+            preserved=plan.preserved + kept,
+            degraded=plan.degraded + lost,
             details={"delays_cs": tuple(delays), "dpi": size.dpi, "times": tuple(times)},
         )
 

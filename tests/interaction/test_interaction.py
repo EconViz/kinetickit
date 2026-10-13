@@ -165,15 +165,15 @@ def test_required_bindings_fail_before_any_output(tmp_path):
         with pytest.raises(CapabilityError, match="click"):
             a.save(tmp_path / name, width=64, height=64)
     assert list(tmp_path.iterdir()) == []
-    assert a.save(tmp_path / "ok.html").preserved == ("click", "playback")
+    assert {"click", "playback"} <= set(a.save(tmp_path / "ok.html").preserved)
 
 
 def test_optional_bindings_are_reported_as_degraded_in_manifests():
     spec = InteractionSpec((Binding(Event.CLICK, Toggle(), "p"),))
     svg = anim(spec).save(io.BytesIO(), format="svg")
-    assert svg.preserved == () and svg.degraded and "click on p" in svg.degraded[0]
+    assert "click" not in svg.preserved and svg.degraded and "click on p" in svg.degraded[0]
     html = anim(spec).save(io.BytesIO(), format="html")
-    assert html.preserved == ("click", "playback") and html.degraded == ()
+    assert {"click", "playback"} <= set(html.preserved) and html.degraded == ()
     drag = InteractionSpec((Binding(Event.CLICK, Toggle(), "p"),))
     assert drag.bindings[0].capabilities == {Interaction.CLICK, Interaction.PLAYBACK}
 
