@@ -13,10 +13,7 @@ from kinetickit.interpolation import Color
 from kinetickit.layout import LayoutResult
 from kinetickit.scene import Group2D, Line2D, Node, Point2D, Shape2D, Text2D
 from kinetickit.styles import MinimalTheme, Theme
-from kinetickit.typography import TextAssetLike
-
-TextFactory = Callable[[str], TextAssetLike]
-"""Turns a string into a laid-out text asset measured in logical pixels."""
+from kinetickit.typography import TextFactory, TypographyEngine, require_text_factory
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,8 +41,15 @@ class Axis2D:
         return nice_ticks(self.range[0], self.range[1], self.tick_count)
 
     def compile(
-        self, layout: LayoutResult, *, theme: Theme = MinimalTheme, text: TextFactory | None = None
+        self,
+        layout: LayoutResult,
+        *,
+        theme: Theme = MinimalTheme,
+        text: TypographyEngine | TextFactory | None = None,
+        labels: bool = False,
     ) -> Group2D:
+        """Compile to nodes. ``labels=True`` needs ``text`` (a typography provider)."""
+        factory = require_text_factory(text, "axis tick labels") if labels else None
         s = layout.scale()
         tick = self.tick_length / s
         children: list[Node] = []
@@ -78,8 +82,8 @@ class Axis2D:
                     cap="butt",
                 )
             )
-            if text is not None:
-                asset = text(format_tick(value))
+            if factory is not None:
+                asset = factory(format_tick(value))
                 gap = 4.0 / s
                 if self.orientation == "x":
                     pos = p + across + Vec2(-asset.width / 2 / s, -(gap + asset.height / s))
@@ -150,9 +154,16 @@ class Legend:
     origin: tuple[float, float] = (16.0, 16.0)
     row_height: float = 22.0
 
-    def compile(self, *, theme: Theme = MinimalTheme, text: TextFactory | None = None) -> Group2D:
+    def compile(
+        self,
+        *,
+        theme: Theme = MinimalTheme,
+        text: TypographyEngine | TextFactory | None = None,
+        labels: bool = True,
+    ) -> Group2D:
         if not self.entries:
             raise ConfigurationError("a legend needs at least one entry")
+        factory = require_text_factory(text, "legend labels") if labels else None
         x0, y0 = self.origin
         children: list[Node] = []
         for i, entry in enumerate(self.entries):
@@ -166,11 +177,11 @@ class Legend:
                     color=Color.parse(entry.color),
                 )
             )
-            if text is not None:
+            if factory is not None:
                 children.append(
                     Text2D(
                         id=f"{self.id}.label{i}",
-                        asset=text(entry.label),
+                        asset=factory(entry.label),
                         position=Vec2(x0 + 20, y + 12),
                         color=theme.text,
                     )
@@ -213,7 +224,13 @@ class Annotation:
     label_at: tuple[float, float]
     text: Any = None
 
-    def compile(self, *, theme: Theme = MinimalTheme, text: TextFactory | None = None) -> Group2D:
+    def compile(
+        self,
+        *,
+        theme: Theme = MinimalTheme,
+        text: TypographyEngine | TextFactory | None = None,
+    ) -> Group2D:
+        factory = require_text_factory(text, "annotation text") if self.text else None
         kids: list[Node] = [
             Line2D(
                 id=f"{self.id}.leader",
@@ -226,11 +243,11 @@ class Annotation:
                 id=f"{self.id}.anchor", position=Vec2(*self.target), size=3.0, color=theme.text
             ),
         ]
-        if text is not None and self.text:
+        if factory is not None:
             kids.append(
                 Text2D(
                     id=f"{self.id}.label",
-                    asset=text(str(self.text)),
+                    asset=factory(str(self.text)),
                     position=Vec2(*self.label_at),
                     color=theme.text,
                 )

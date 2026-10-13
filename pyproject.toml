@@ -72,7 +72,7 @@ strict = true
 files = ["src/kinetickit"]
 
 [[tool.mypy.overrides]]
-module = ["matplotlib.*", "plotly.*", "PIL.*"]
+module = ["matplotlib.*", "plotly.*", "PIL.*", "glyphkit.*", "fontTools.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
