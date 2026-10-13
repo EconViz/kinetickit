@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from kinetickit.exporters.animated_svg import AnimatedSVGExporter
+from kinetickit.exporters.cost import RenderCostEstimate, RenderCostWarning, estimate_cost
 from kinetickit.exporters.destination import (
     BytesDestination,
     Destination,
@@ -10,10 +11,12 @@ from kinetickit.exporters.destination import (
     StreamDestination,
     as_destination,
 )
+from kinetickit.exporters.gif import GIFExporter, GifSettings
 from kinetickit.exporters.manifest import ExportManifest
 from kinetickit.exporters.registry import available_formats, export, register_exporter
 
 register_exporter("svg", AnimatedSVGExporter.from_options, replace=True)
+register_exporter("gif", GIFExporter.from_options, replace=True)
 
 __all__ = [
     "AnimatedSVGExporter",
@@ -21,9 +24,14 @@ __all__ = [
     "Destination",
     "ExportManifest",
     "FileDestination",
+    "GIFExporter",
+    "GifSettings",
+    "RenderCostEstimate",
+    "RenderCostWarning",
     "StreamDestination",
     "as_destination",
     "available_formats",
+    "estimate_cost",
     "export",
     "register_exporter",
 ]
