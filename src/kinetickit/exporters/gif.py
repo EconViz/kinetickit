@@ -13,6 +13,7 @@ from kinetickit.exporters._gif_stream import GifStreamWriter
 from kinetickit.exporters.cost import estimate_cost, warn_if_expensive
 from kinetickit.exporters.destination import Destination, as_destination
 from kinetickit.exporters.manifest import ExportManifest
+from kinetickit.interaction import Degradation, plan_interactions
 from kinetickit.interpolation import Color
 from kinetickit.renderers import get_renderer, requirements_for
 from kinetickit.renderers.capabilities import OUT_RASTER_FRAME
@@ -38,6 +39,7 @@ class GifSettings:
     palette: str = "adaptive"
     disposal: int = 1
     metadata: bool = True
+    degradation: str = "drop"
 
     def scheduler(self) -> Scheduler:
         return Timestamps(self.timestamps) if self.timestamps is not None else FixedFPS(self.fps)
@@ -106,6 +108,9 @@ class GIFExporter:
         renderer = get_renderer("raster")
         renderer.capabilities.validate(requirements_for(animation, outputs=(OUT_RASTER_FRAME,)))
         assert isinstance(renderer, RasterRenderer)
+        plan = plan_interactions(
+            animation.interactions, renderer.capabilities, Degradation(self.gif.degradation)
+        )
         size = self.raster.resolve()
         times, delays = self.plan(animation)
         estimate = estimate_cost(size, len(times))
@@ -160,6 +165,8 @@ class GIFExporter:
             frames=len(times),
             bytes_written=written,
             warnings=(estimate.message(),) if estimate.expensive else (),
+            preserved=plan.preserved,
+            degraded=plan.degraded,
             details={"delays_cs": tuple(delays), "dpi": size.dpi, "times": tuple(times)},
         )
 

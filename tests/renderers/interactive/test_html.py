@@ -255,3 +255,18 @@ def test_group_nodes_and_ids_survive():
     g = Group2D(id="g", children=(Point2D(id="c"),))
     html = Animation(Scene2D(g)).to_bytes("html").decode()
     assert {"g", "c"} <= {a["data-kk-id"] for t, a in parse(html) if "data-kk-id" in a}
+
+
+def test_runtime_javascript_is_syntactically_valid(tmp_path):
+    import shutil
+    import subprocess
+
+    from kinetickit.renderers.interactive.runtime import RUNTIME_JS
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    path = tmp_path / "runtime.js"
+    path.write_text(RUNTIME_JS, encoding="utf-8")
+    result = subprocess.run([node, "--check", str(path)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
