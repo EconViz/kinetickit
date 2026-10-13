@@ -1,6 +1,6 @@
 """Caller-provided fonts: GlyphKit lays text out, KineticKit animates and embeds it.
 
-Requires the optional GlyphKit package. Pass your own font bytes via ``font_bytes``.
+GlyphKit is installed with KineticKit. Pass your own font bytes via ``font_bytes``.
 """
 
 from __future__ import annotations

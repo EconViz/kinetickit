@@ -15,6 +15,7 @@ One scene and one timeline drive three outputs:
 | Self-contained interactive HTML (2D and 3D) | `interactive` | `kinetickit[interactive]` |
 
 `kinetickit[studio]` installs the raster and interactive capabilities together. Python 3.10–3.13.
+Every installation includes `glyphkit>=1.0.0b2,<2` for font processing.
 
 > **Status: 1.0 beta.** The contracts listed in [`docs/compatibility.md`](docs/compatibility.md)
 > are intended to be stable; they may still change between pre-releases, always with a changelog
@@ -70,7 +71,7 @@ Animation(scene, scene.camera.animate.position.to(Vec3(-5, -6, 4), duration=2.0)
   machine, controls; required bindings fail before output, optional ones degrade explicitly.
 - **Accessibility**: per-object roles/labels/descriptions/reading order, reduced-motion policy,
   text alternatives and keyboard-operable controls.
-- **Typography**: text arrives as a neutral `TextAsset`; the optional GlyphKit adapter turns
+- **Typography**: text arrives as a neutral `TextAsset`; the included GlyphKit adapter turns
   caller-provided fonts into assets and embeds permission-checked subsets.
 - **Quality**: conformance fixtures and suites, golden artifacts, performance budgets.
 
@@ -88,6 +89,10 @@ Migrating from MosaicKit or utility-viz animation: [`docs/migration.md`](docs/mi
 
 Boundaries are enforced by import-linter contracts and AST tests. Third-party engines
 (Matplotlib, Plotly, Pillow) live only in private `_*` modules and never appear in public API.
+GlyphKit owns font loading, matching, shaping, layout, outlines, subsetting and embedding
+permissions. Only `kinetickit.integrations.glyphkit` imports it; importing KineticKit's core
+does not load GlyphKit. KineticKit retains its neutral text assets and typography protocols,
+and GlyphKit remains independent of KineticKit.
 
 ## Development
 

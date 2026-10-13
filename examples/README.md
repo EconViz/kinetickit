@@ -8,7 +8,7 @@ meshes, surfaces, text assets). None needs MosaicKit or any visualization packag
 | `arbitrary_objects.py` | animating a plain Python object model through an adapter |
 | `chart.py` | a bar-and-line chart from generic shapes, axes and morphs |
 | `surface.py` | a lit 3D surface with an orbiting camera → GIF, SVG, HTML |
-| `external_fonts.py` | caller-provided fonts via the optional GlyphKit adapter |
+| `external_fonts.py` | caller-provided fonts via the included GlyphKit adapter |
 | `interactive_accessible.py` | declarative interactions plus accessibility metadata |
 
 Run one with `uv run python examples/surface.py`; each writes into `out/`.

@@ -38,6 +38,17 @@ Replace the factory with a depiction function and construct the animation direct
 2. Express change as motions (`node.animate.<property>.to(...)`) or as `SceneTransition.between`.
 3. Export with `animation.save(path)`; the exporter owns file output.
 
+## Typography with GlyphKit
+
+Installing or upgrading KineticKit also installs `glyphkit>=1.0.0b2,<2`. Import
+`GlyphKitTypography` from `kinetickit.integrations.glyphkit` and provide your font sources
+through GlyphKit. GlyphKit owns font loading, matching, shaping, layout, outlines, subsetting
+and embedding permissions; KineticKit places and animates the resulting neutral `TextAsset`.
+
+Existing `Text2D`, `TextAsset`, `GlyphShape`, `FontResource` and typography protocol consumers
+keep their contracts. Core imports do not load GlyphKit, and GlyphKit does not import
+KineticKit. Raster and interactive output continue to use their existing extras.
+
 ## Policies
 
 - No compatibility shims: removed MosaicKit/utility-viz animation APIs are not re-exported.
