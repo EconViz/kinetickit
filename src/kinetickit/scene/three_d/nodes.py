@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 
+from kinetickit.easing import Easing, linear
 from kinetickit.errors import ConfigurationError
 from kinetickit.geometry.three_d import (
     Bounds3D,
@@ -19,10 +20,12 @@ from kinetickit.geometry.three_d import (
     Vec3Array,
 )
 from kinetickit.interpolation import Color
+from kinetickit.morph import MeshMorph, SurfaceMorph
 from kinetickit.scene.node import Node, prop
 from kinetickit.scene.scene import SceneBase
 from kinetickit.scene.two_d.nodes import CAPS, INK, JOINS, SYMBOLS, _check_dash, _choice, _nonneg
 from kinetickit.styles import ColorScale, Material
+from kinetickit.timeline import Motion
 
 PROJECTIONS = ("perspective", "orthographic")
 
@@ -138,6 +141,17 @@ class Mesh3D(_Surfaced):
     def mesh_data(self) -> MeshData:
         return self.mesh
 
+    def morph_to(
+        self,
+        target: MeshData,
+        *,
+        duration: float,
+        easing: Easing = linear,
+        morph: MeshMorph | None = None,
+    ) -> Motion:
+        """Morph to ``target``; incompatible topology needs an explicit ``MeshMorph``."""
+        return self.morph_property("mesh", target, duration=duration, easing=easing, spec=morph)
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Surface3D(_Surfaced):
@@ -174,6 +188,17 @@ class Surface3D(_Surfaced):
 
     def mesh_data(self) -> MeshData:
         return self.grid.to_mesh()
+
+    def morph_to(
+        self,
+        target: SurfaceGrid,
+        *,
+        duration: float,
+        easing: Easing = linear,
+        morph: SurfaceMorph | None = None,
+    ) -> Motion:
+        """Morph to ``target``; a different sampling needs an explicit ``SurfaceMorph``."""
+        return self.morph_property("grid", target, duration=duration, easing=easing, spec=morph)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

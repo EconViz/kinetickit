@@ -6,8 +6,12 @@ import math
 from dataclasses import dataclass, field, fields, replace
 from typing import Any, ClassVar
 
+from kinetickit.easing import Easing, linear
 from kinetickit.errors import ConfigurationError
+from kinetickit.morph import normalize_pair
+from kinetickit.timeline import Motion
 from kinetickit.timeline.property import PropertyRef
+from kinetickit.tween import Tween
 from kinetickit.tween.property import PropertyBuilder
 
 
@@ -80,6 +84,32 @@ class Node:
     def animate(self) -> AnimateProxy:
         """``node.animate.<property>`` returns a builder for immutable motions."""
         return AnimateProxy(self)
+
+    def morph_property(
+        self,
+        name: str,
+        target: Any,
+        *,
+        duration: float,
+        easing: Easing = linear,
+        spec: Any = None,
+    ) -> Motion:
+        """Morph one property to ``target`` or fail loudly; never fall back silently.
+
+        The pair is normalized with the registered normalizer for the property's type; incompatible
+        values raise with the diagnostics instead of producing corrupted geometry. ``spec`` carries
+        the explicit correspondence (``PathMorph``, ``MeshMorph``, ``SurfaceMorph``).
+        """
+        ref = self.ref(name)
+        end = ref.coerce(target)
+        pair = normalize_pair(ref.value_type, getattr(self, name), end, spec)
+        if not pair.compatible:
+            reasons = "; ".join(d.message for d in pair.diagnostics if d.severity == "error")
+            raise ConfigurationError(
+                f"cannot morph {self.id}.{name} automatically ({reasons}). Pass an explicit "
+                "correspondence spec, or cross-fade with a SceneTransition."
+            )
+        return Tween(ref, pair.end, duration, easing, pair.start)
 
     def children_nodes(self) -> tuple[Node, ...]:
         return ()

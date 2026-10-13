@@ -14,11 +14,10 @@ from kinetickit.easing import Easing, linear
 from kinetickit.errors import ConfigurationError
 from kinetickit.geometry.two_d import Bounds2D, Matrix3, Path2D, Transform2D, Vec2
 from kinetickit.interpolation import Color
-from kinetickit.morph import PathMorph, normalize_paths
+from kinetickit.morph import PathMorph
 from kinetickit.scene.node import Node, prop
 from kinetickit.scene.scene import SceneBase
 from kinetickit.timeline import Motion
-from kinetickit.tween import Tween
 from kinetickit.typography import TextAssetLike
 
 SYMBOLS = ("circle", "square", "diamond", "triangle", "cross", "plus")
@@ -51,16 +50,7 @@ def _morph_to(
     easing: Easing,
     morph: PathMorph | None,
 ) -> Motion:
-    """Morph ``node.path`` to ``target`` or fail loudly; never fall back silently."""
-    end = Path2D.coerce(target)
-    pair = normalize_paths(getattr(node, "path"), end, morph)
-    if not pair.compatible:
-        reasons = "; ".join(d.message for d in pair.diagnostics)
-        raise ConfigurationError(
-            f"cannot morph {node.id}.path automatically ({reasons}). Pass a PathMorph with an "
-            "explicit normalizer, or cross-fade with a SceneTransition."
-        )
-    return Tween(node.ref("path"), pair.end, duration, easing, pair.start)
+    return node.morph_property("path", target, duration=duration, easing=easing, spec=morph)
 
 
 def _union(boxes: list[Bounds2D | None]) -> Bounds2D | None:
