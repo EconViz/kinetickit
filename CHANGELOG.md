@@ -6,6 +6,10 @@ All notable changes are recorded here. The format follows
 
 ## Unreleased
 
+### Added
+- Add `export_png_frames(...)`, a domain-neutral streaming bridge from encoded PNG
+  frame iterables to GIF with exact centisecond error distribution.
+
 ### Changed
 - GlyphKit (`>=1.0.0b2,<2`) is now installed with KineticKit and owns all font processing. The `kinetickit.integrations.glyphkit` adapter remains the only import boundary; core imports stay lazy and neutral text contracts are unchanged.
 

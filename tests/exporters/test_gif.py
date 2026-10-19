@@ -9,7 +9,7 @@ import pytest
 from kinetickit import ease
 from kinetickit.animation import Animation
 from kinetickit.errors import CapabilityError, ConfigurationError
-from kinetickit.exporters import RenderCostWarning
+from kinetickit.exporters import RenderCostWarning, export_png_frames
 from kinetickit.exporters.cost import estimate_cost
 from kinetickit.exporters.gif import frame_delays
 from kinetickit.geometry.two_d import Bounds2D
@@ -28,6 +28,52 @@ def anim(duration=1.0):
 
 def open_gif(data: bytes):
     return Image.open(io.BytesIO(data))
+
+
+def test_png_frame_sequence_exports_a_timed_streaming_gif():
+    frames = []
+    for color in ("#e41a1c", "#377eb8"):
+        stream = io.BytesIO()
+        Image.new("RGB", (12, 8), color).save(stream, format="PNG")
+        frames.append(stream.getvalue())
+
+    target = io.BytesIO()
+    manifest = export_png_frames(frames, target, fps=5, loop=0)
+
+    image = open_gif(target.getvalue())
+    assert image.size == (12, 8)
+    assert image.n_frames == 2
+    assert [image.seek(i) or image.info["duration"] for i in range(2)] == [200, 200]
+    assert manifest.frames == 2
+    assert manifest.duration == pytest.approx(0.4)
+
+
+def test_png_frame_sequence_rejects_empty_input_and_invalid_fps():
+    with pytest.raises(ConfigurationError, match="at least one PNG frame"):
+        export_png_frames([], io.BytesIO())
+    for fps in (True, 0, 101, 2.5):
+        with pytest.raises(ConfigurationError, match="fps"):
+            export_png_frames([b"unused"], io.BytesIO(), fps=fps)  # type: ignore[arg-type]
+
+
+def test_png_frame_sequence_distributes_centisecond_rounding_error():
+    frames = []
+    for color in ("#e41a1c", "#377eb8", "#4daf4a"):
+        stream = io.BytesIO()
+        Image.new("RGB", (4, 4), color).save(stream, format="PNG")
+        frames.append(stream.getvalue())
+
+    target = io.BytesIO()
+    manifest = export_png_frames(frames, target, fps=30)
+
+    image = open_gif(target.getvalue())
+    durations = []
+    for index in range(image.n_frames):
+        image.seek(index)
+        durations.append(image.info["duration"])
+    assert sum(durations) == 100
+    assert set(durations) == {30, 40}
+    assert manifest.duration == pytest.approx(0.1)
 
 
 def test_one_second_at_30_fps_is_30_frames_with_exact_total_time():

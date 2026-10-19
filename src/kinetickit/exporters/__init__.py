@@ -11,7 +11,7 @@ from kinetickit.exporters.destination import (
     StreamDestination,
     as_destination,
 )
-from kinetickit.exporters.gif import GIFExporter, GifSettings
+from kinetickit.exporters.gif import GIFExporter, GifSettings, export_png_frames
 from kinetickit.exporters.html import HTMLExporter
 from kinetickit.exporters.manifest import ExportManifest
 from kinetickit.exporters.registry import available_formats, export, register_exporter
@@ -36,5 +36,6 @@ __all__ = [
     "available_formats",
     "estimate_cost",
     "export",
+    "export_png_frames",
     "register_exporter",
 ]

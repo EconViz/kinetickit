@@ -23,6 +23,12 @@ _DITHER = {
 }
 
 
+def decode_png(data: bytes) -> npt.NDArray[np.uint8]:
+    """Decode one PNG frame to the RGBA array consumed by the streaming writer."""
+    with Image.open(io.BytesIO(data)) as image:
+        return np.asarray(image.convert("RGBA"), dtype=np.uint8)
+
+
 def _skip_blocks(data: bytes, pos: int) -> int:
     while data[pos]:
         pos += data[pos] + 1
