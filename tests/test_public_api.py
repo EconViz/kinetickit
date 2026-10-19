@@ -43,11 +43,11 @@ def test_every_exported_name_exists_and_is_not_private(name):
         assert not attr.startswith("_") or attr == "__version__"
 
 
-def test_version_is_the_first_beta_of_one_zero():
-    assert kinetickit.__version__ == "1.0.0b1"
+def test_version_is_a_one_zero_beta():
+    assert kinetickit.__version__ == "1.0.0b2"
     from importlib.metadata import version
 
-    assert version("kinetickit") == "1.0.0b1"
+    assert version("kinetickit") == "1.0.0b2"
 
 
 def test_top_level_names_are_unique():

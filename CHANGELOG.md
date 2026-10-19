@@ -4,7 +4,7 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project follows
 [Semantic Versioning](https://semver.org/) from 1.0.
 
-## Unreleased
+## 1.0.0b2 — 2026-10-19
 
 ### Added
 - Add `export_png_frames(...)`, a domain-neutral streaming bridge from encoded PNG
