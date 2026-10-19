@@ -40,7 +40,7 @@ from kinetickit.timeline import Motion, PropertyRef, Timeline
 from kinetickit.transitions import SceneTransition, TransitionPolicy
 from kinetickit.typography import FontResource, GlyphShape, TextAsset
 
-__version__ = "1.0.0b1"
+__version__ = "1.0.0b2"
 
 __all__ = [
     "AccessibilityInfo",
