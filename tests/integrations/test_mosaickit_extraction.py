@@ -12,9 +12,6 @@ import pytest
 
 mosaickit = pytest.importorskip("mosaickit")
 
-from mosaickit import (  # noqa: E402
-    Animation as MosaicAnimation,
-)
 from mosaickit import Canvas, Fill, FillLayer, MarkerLayer, Parameter, PathLayer, Stroke  # noqa: E402
 from tests.support.smil import Q, parse  # noqa: E402
 
@@ -71,7 +68,7 @@ def sweep_canvas():
     canvas.add(
         FillLayer([(0, 0), (8, 0), (4, t)], fill=Fill(color="#377EB8", opacity=0.3), id="area")
     )
-    return MosaicAnimation.sweep(canvas, t.values([1.0, 4.0, 7.0]), fps=2)
+    return [canvas.bind(t, value).snapshot() for value in (1.0, 4.0, 7.0)]
 
 
 def frames_to_nodes(frames):
@@ -79,8 +76,7 @@ def frames_to_nodes(frames):
 
 
 def test_a_parameter_sweep_extracts_into_a_kinetickit_animation(tmp_path):
-    sweep = sweep_canvas()
-    frames = list(sweep.frames())
+    frames = sweep_canvas()
     assert len(frames) == 3
     scenes = [adapt([layer], depict) for f in frames for layer in f.layers][:3]
     assert scenes  # the same adapter builds plain scenes from any frame
