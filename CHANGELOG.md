@@ -4,6 +4,15 @@ All notable changes are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project follows
 [Semantic Versioning](https://semver.org/) from 1.0.
 
+## Unreleased
+
+### Changed
+- `kinetickit.renderers.vector.compiler` is now a package of small modules (model, base, shapes,
+  structure, encoding, document) instead of one 1080-line file; `SvgCompiler` is assembled from
+  one mixin per responsibility. Every name the module defined is still importable from
+  `kinetickit.renderers.vector.compiler`, and the generated SVG is unchanged. A test now fails
+  when any file under `src/` exceeds 450 lines.
+
 ## 1.0.0b2 — 2026-10-19
 
 ### Added
